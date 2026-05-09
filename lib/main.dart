@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'common/switchPage.dart';
-import 'onboarding/view/main.dart';
+import 'onboarding/view/onboardingController.dart';
 
 void main() {
   runApp(const MyApp());
@@ -17,7 +17,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.white),
       ),
       // home: SwitchPage(),
-      home: OnboardingPage(),
+      home: OnboardingController(),
     );
   }
 }

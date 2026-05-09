@@ -77,7 +77,7 @@ class _TextFieldWidgetState extends State<TextFieldWidget> {
 
         contentPadding: const EdgeInsets.symmetric(
           vertical: 12.0,
-          horizontal: 14.0,
+          horizontal: 12.0,
         ),
       ),
 

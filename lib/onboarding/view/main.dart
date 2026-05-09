@@ -31,9 +31,8 @@ class OnboardingPage extends StatelessWidget {
                 '누군가와 대화를 했어요',
                 '집 밖에 나갔어요',
               ],
-              isMultipleSelection: false, // 복수 선택 허용 (false로 바꾸면 하나만 선택됨)
+              isMultipleSelection: false,
               onChanged: (selectedList) {
-                // 선택될 때마다 이곳이 실행됩니다.
                 print('현재 선택된 항목들: $selectedList');
               },
             ),

@@ -13,6 +13,7 @@ class QuestionWidget extends StatelessWidget {
       text,
       style: FontStyles.semi24.copyWith(
         color: ColorStyles.black2,
+        fontSize: 26.0,
         letterSpacing: -0.33,
       ),
     );
