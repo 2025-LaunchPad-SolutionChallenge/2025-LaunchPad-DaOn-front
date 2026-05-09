@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:project_daon/ui/fontStyles.dart';
 import '../../ui/colorStyles.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
@@ -32,16 +33,10 @@ class BottomNavBarWidget extends StatelessWidget {
         onTap: onTap,
         selectedItemColor: activeColor,
         unselectedItemColor: inactiveColor,
-        backgroundColor: Colors.white,
+        backgroundColor: ColorStyles.white,
         elevation: 0,
-        selectedLabelStyle: const TextStyle(
-          fontSize: 11,
-          fontFamily: 'Pretendard',
-        ),
-        unselectedLabelStyle: const TextStyle(
-          fontSize: 11,
-          fontFamily: 'Pretendard',
-        ),
+        selectedLabelStyle: FontStyles.med11,
+        unselectedLabelStyle: FontStyles.med11,
         items: _bottomNavItems.map((item) {
           final bool isSelected = currentIndex == item.index;
 
@@ -51,8 +46,8 @@ class BottomNavBarWidget extends StatelessWidget {
               children: [
                 AnimatedContainer(
                   duration: const Duration(milliseconds: 100),
-                  width: isSelected ? 50 : 0,
-                  height: 3,
+                  width: isSelected ? 60 : 0,
+                  height: 4,
                   decoration: BoxDecoration(
                     color: isSelected ? activeColor : Colors.transparent,
                     borderRadius: BorderRadius.circular(999),
@@ -87,26 +82,26 @@ class BottomNavItem {
 const _bottomNavItems = [
   BottomNavItem(
     index: 0,
-    actIcon: 'assets/appbar/homeAct.svg',
-    inactIcon: 'assets/appbar/home.svg',
+    actIcon: 'assets/bottomNav/homeAct.svg',
+    inactIcon: 'assets/bottomNav/home.svg',
     label: 'Home',
   ),
   BottomNavItem(
     index: 1,
-    actIcon: 'assets/appbar/checklistAct.svg',
-    inactIcon: 'assets/appbar/checklist.svg',
+    actIcon: 'assets/bottomNav/checklistAct.svg',
+    inactIcon: 'assets/bottomNav/checklist.svg',
     label: 'Check List',
   ),
   BottomNavItem(
     index: 2,
-    actIcon: 'assets/appbar/communityAct.svg',
-    inactIcon: 'assets/appbar/community.svg',
+    actIcon: 'assets/bottomNav/communityAct.svg',
+    inactIcon: 'assets/bottomNav/community.svg',
     label: 'Community',
   ),
   BottomNavItem(
     index: 3,
-    actIcon: 'assets/appbar/mypageAct.svg',
-    inactIcon: 'assets/appbar/mypage.svg',
+    actIcon: 'assets/bottomNav/mypageAct.svg',
+    inactIcon: 'assets/bottomNav/mypage.svg',
     label: 'MyPage',
   ),
 ];
