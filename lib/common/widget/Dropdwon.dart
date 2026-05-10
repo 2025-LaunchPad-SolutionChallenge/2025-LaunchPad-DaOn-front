@@ -3,22 +3,17 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:project_daon/ui/colorStyles.dart';
 import 'package:project_daon/ui/fontStyles.dart';
 
-class HomeDropdown extends StatefulWidget {
+class Dropdown extends StatefulWidget {
   final List<String>? daonItemList;
   final List<String>? dateItemList;
   final String? color;
-  const HomeDropdown({
-    super.key,
-    this.daonItemList,
-    this.dateItemList,
-    this.color,
-  });
+  const Dropdown({super.key, this.daonItemList, this.dateItemList, this.color});
 
   @override
-  State<HomeDropdown> createState() => _HomeDropdownState();
+  State<Dropdown> createState() => _DropdownState();
 }
 
-class _HomeDropdownState extends State<HomeDropdown> {
+class _DropdownState extends State<Dropdown> {
   // 드롭다운에 표시될 모의 데이터 목록
   final List<String> _dropdownItems = [
     '홍수 피해  |  2025 - 02 - 24',
@@ -35,6 +30,22 @@ class _HomeDropdownState extends State<HomeDropdown> {
     _selectedValue = _dropdownItems[0];
   }
 
+  Color getColor() {
+    if (widget.color == 'main1') {
+      return ColorStyles.main1;
+    } else {
+      return ColorStyles.white;
+    }
+  }
+
+  String getArrowColor() {
+    if (widget.color == 'main1') {
+      return 'assets/home/arrowGreen.svg';
+    } else {
+      return 'assets/home/arrow.svg';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -48,7 +59,7 @@ class _HomeDropdownState extends State<HomeDropdown> {
       decoration: BoxDecoration(
         color: Colors.transparent,
         border: Border.all(
-          color: ColorStyles.white, // 흰색 테두리 라인
+          color: getColor(), // 흰색 테두리 라인
           width: 1.0,
         ),
         borderRadius: BorderRadius.circular(30.0),
@@ -56,13 +67,13 @@ class _HomeDropdownState extends State<HomeDropdown> {
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: _selectedValue,
-          style: FontStyles.med14.copyWith(color: ColorStyles.white),
+          style: FontStyles.med14.copyWith(color: getColor()),
           icon: Row(
             children: [
               SizedBox(width: 10.0),
               Padding(
                 padding: const EdgeInsets.only(top: 2.0),
-                child: SvgPicture.asset('assets/home/arrow.svg'),
+                child: SvgPicture.asset(getArrowColor()),
               ),
             ],
           ),

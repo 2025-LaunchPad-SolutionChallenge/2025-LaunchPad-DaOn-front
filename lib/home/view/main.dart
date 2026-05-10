@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:project_daon/common/widget/yellowBackButton.dart';
-import 'package:project_daon/home/widget/homeDropdwon.dart';
+import 'package:project_daon/common/widget/Dropdwon.dart';
 import 'package:project_daon/home/widget/semiCircleProgressBar.dart';
+import 'package:project_daon/home/widget/homeAppBar.dart';
 import 'package:project_daon/home/widget/startBlock.dart';
 import 'package:project_daon/ui/colorStyles.dart';
-import 'package:project_daon/home/widget/homeAppBar.dart';
 import 'package:project_daon/ui/fontStyles.dart';
 
-// 💡 1. 상태 변화(바텀시트 높이)를 감지하기 위해 StatefulWidget으로 변경합니다.
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -54,7 +53,7 @@ class _HomePageState extends State<HomePage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    HomeDropdown(),
+                    Dropdown(),
                     const SizedBox(height: 12.0),
                     StartBlock(name: "하은", myStep: "다시 움직이기"),
 
@@ -147,24 +146,33 @@ class _HomePageState extends State<HomePage> {
                                 ),
                               ),
                               const SizedBox(height: 20),
-                              // 리스트가 길어지면 드래그로 올라갈 수 있게 아이템을 여러 개 배치해 보세요.
+                              // 체크 리스트
                               Container(
-                                width: 13,
-                                height: 13,
-                                color: Colors.green,
+                                width: 14,
+                                height: 14,
                                 margin: const EdgeInsets.only(bottom: 20),
+                                decoration: BoxDecoration(
+                                  color: ColorStyles.main1,
+                                  borderRadius: BorderRadius.circular(2.0),
+                                ),
                               ),
                               Container(
-                                width: 13,
-                                height: 13,
-                                color: Colors.lightGreen,
+                                width: 14,
+                                height: 14,
                                 margin: const EdgeInsets.only(bottom: 20),
+                                decoration: BoxDecoration(
+                                  color: ColorStyles.secon1,
+                                  borderRadius: BorderRadius.circular(2.0),
+                                ),
                               ),
                               Container(
-                                width: 13,
-                                height: 13,
-                                color: Colors.lightGreen,
+                                width: 14,
+                                height: 14,
                                 margin: const EdgeInsets.only(bottom: 20),
+                                decoration: BoxDecoration(
+                                  color: ColorStyles.secon1,
+                                  borderRadius: BorderRadius.circular(2.0),
+                                ),
                               ),
                             ],
                           ),
