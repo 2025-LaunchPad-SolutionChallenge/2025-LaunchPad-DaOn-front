@@ -35,7 +35,6 @@ class _SwitchPageState extends State<SwitchPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       extendBody: true,
-      appBar: AppBarWidget(),
       body: IndexedStack(index: _currentIndex, children: _pages),
       bottomNavigationBar: BottomNavBarWidget(
         currentIndex: _currentIndex,

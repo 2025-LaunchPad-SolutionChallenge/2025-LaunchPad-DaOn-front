@@ -15,9 +15,14 @@ class MyApp extends StatelessWidget {
       title: 'DAON app',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.white),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          centerTitle: true,
+        ),
       ),
-      // home: SwitchPage(),
-      home: OnboardingController(),
+      home: SwitchPage(),
+      // home: OnboardingController(),
     );
   }
 }
