@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:project_daon/checklist/widget/calBottomPopup.dart';
 import 'package:project_daon/ui/colorStyles.dart';
 import 'dart:ui';
-
 import 'package:project_daon/ui/fontStyles.dart';
 
 class ChecklistWeekWidget extends StatefulWidget {
@@ -28,6 +28,17 @@ class _ChecklistWeekWidgetState extends State<ChecklistWeekWidget> {
   void initState() {
     super.initState();
     _currentWeekStart = _getStartOfWeek(widget.selectedDate);
+  }
+
+  // 부모로부터 선택 날짜가 강제로 변경되었을 때 달력 표시 주차도 동기화
+  @override
+  void didUpdateWidget(covariant ChecklistWeekWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.selectedDate != widget.selectedDate) {
+      setState(() {
+        _currentWeekStart = _getStartOfWeek(widget.selectedDate);
+      });
+    }
   }
 
   DateTime _getStartOfWeek(DateTime date) {
@@ -81,9 +92,31 @@ class _ChecklistWeekWidgetState extends State<ChecklistWeekWidget> {
               icon: SvgPicture.asset('assets/checklist/arrowL.svg'),
               onPressed: _previousWeek,
             ),
+            // 💡 월간 달력 위젯 호출 부분 수정
             TextButton(
-              onPressed: () {
-                print("월간 달력 위젯 호출!");
+              onPressed: () async {
+                // 바텀 시트 호출 및 결과(DateTime) 대기
+                final DateTime? newSelectedWeek =
+                    await showModalBottomSheet<DateTime>(
+                      context: context,
+                      isScrollControlled: true,
+                      backgroundColor:
+                          Colors.transparent, // 팝업의 둥근 모서리를 살리기 위해 투명 처리
+                      builder: (context) {
+                        return CalWeekSelectionPopupWidget(
+                          initialDate: _currentWeekStart, // 현재 표시 중인 날짜 전달
+                        );
+                      },
+                    );
+
+                // 팝업에서 '선택하기'를 눌러 날짜를 받아왔다면
+                if (newSelectedWeek != null) {
+                  setState(() {
+                    _currentWeekStart = newSelectedWeek; // 달력을 선택한 주차로 이동
+                  });
+                  // 부모 위젯(ChecklistPage)의 상태도 해당 주의 일요일로 업데이트
+                  widget.onDateSelected(newSelectedWeek);
+                }
               },
               style: TextButton.styleFrom(foregroundColor: Colors.black87),
               child: Text(

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:project_daon/checklist/view/checklistAiAddPage.dart';
+import 'package:project_daon/checklist/widget/addBottomPopup.dart';
 import 'package:project_daon/checklist/widget/aiChecklistFloatingButton.dart';
+import 'package:project_daon/checklist/widget/itemBottomPopup.dart';
 import 'package:project_daon/checklist/widget/checkNullWidget.dart';
 import 'package:project_daon/checklist/widget/checkProgress.dart';
 import 'package:project_daon/checklist/widget/checklistWeekWidget.dart';
@@ -22,40 +24,25 @@ class _ChecklistPageState extends State<ChecklistPage> {
   void _showBottomSheet() {
     showModalBottomSheet(
       context: context,
-      isScrollControlled: true,
+      isScrollControlled: true, // 키보드 대응이나 스크롤을 위해 유지
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
       ),
       builder: (context) {
-        return Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom,
-          ),
-          child: Container(
-            height: 300, // 우선 임시 높이 지정
-            width: double.infinity,
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              children: [
-                Container(
-                  width: 50,
-                  height: 5,
-                  decoration: ShapeDecoration(
-                    color: const Color(0x33525252),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(100),
-                    ),
-                  ),
-                ),
-                SizedBox(height: 16.0),
-                Text(
-                  '여기에 두 번째 이미지의 세부 위젯들을 추가하세요.',
-                  style: TextStyle(color: Colors.grey),
-                ),
-              ],
-            ),
-          ),
-        );
+        return const ItemBottomPopupWidget();
+      },
+    );
+  }
+
+  void _showBottomSheet22() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true, // 키보드 대응이나 스크롤을 위해 유지
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
+      ),
+      builder: (context) {
+        return const AddBottomPopupWidget();
       },
     );
   }
@@ -78,7 +65,6 @@ class _ChecklistPageState extends State<ChecklistPage> {
               child: AiChecklistFloatingButton(
                 onPressed: () {
                   _navigateToNewPage();
-                  // _showBottomSheet();
                 },
               ),
             )
@@ -126,6 +112,7 @@ class _ChecklistPageState extends State<ChecklistPage> {
                 child: IndexedStack(
                   index: _selectedIndex,
                   children: [
+                    // 0번 탭: 체크리스트
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -133,7 +120,25 @@ class _ChecklistPageState extends State<ChecklistPage> {
                         Center(child: CheckNullWidget()),
                       ],
                     ),
-                    Text('아카이빙 페이지'),
+                    // 1번 탭: 아카이빙
+                    Column(
+                      children: [
+                        SizedBox(height: 60.0),
+                        Text('아카이빙 페이지'),
+                        ElevatedButton(
+                          onPressed: () {
+                            _showBottomSheet();
+                          },
+                          child: Text('버튼'),
+                        ),
+                        ElevatedButton(
+                          onPressed: () {
+                            _showBottomSheet22();
+                          },
+                          child: Text('버튼'),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),
