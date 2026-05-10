@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:project_daon/ui/colorStyles.dart';
 
 import '../home/view/main.dart';
-import '../check/view/main.dart';
+import '../checklist/view/main.dart';
 import '../community/view/main.dart';
 import '../mypage/view/main.dart';
 
@@ -20,7 +21,7 @@ class _SwitchPageState extends State<SwitchPage> {
 
   final List<Widget> _pages = const [
     HomePage(),
-    CheckPage(),
+    ChecklistPage(),
     CommunityPage(),
     MyPage(),
   ];
@@ -34,6 +35,7 @@ class _SwitchPageState extends State<SwitchPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: ColorStyles.white,
       extendBody: true,
       body: IndexedStack(index: _currentIndex, children: _pages),
       bottomNavigationBar: BottomNavBarWidget(
