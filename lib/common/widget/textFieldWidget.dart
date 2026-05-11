@@ -4,12 +4,14 @@ import 'package:project_daon/ui/fontStyles.dart';
 
 class TextFieldWidget extends StatefulWidget {
   final String hintText;
+  final double hintSize;
   final TextEditingController? controller;
   final ValueChanged<String>? onChanged;
 
   const TextFieldWidget({
     Key? key,
-    this.hintText = '', // required 제거 (기본값이 '' 이므로)
+    this.hintText = '',
+    this.hintSize = 16.0,
     this.controller,
     this.onChanged,
   }) : super(key: key);
@@ -61,7 +63,10 @@ class _TextFieldWidgetState extends State<TextFieldWidget> {
 
       decoration: InputDecoration(
         hintText: widget.hintText,
-        hintStyle: FontStyles.med16.copyWith(color: ColorStyles.grey2),
+        hintStyle: FontStyles.med16.copyWith(
+          color: ColorStyles.grey2,
+          fontSize: widget.hintSize,
+        ),
 
         enabledBorder: OutlineInputBorder(
           borderSide: BorderSide(
@@ -81,7 +86,10 @@ class _TextFieldWidgetState extends State<TextFieldWidget> {
         ),
       ),
 
-      style: FontStyles.med16.copyWith(color: ColorStyles.main1),
+      style: FontStyles.med16.copyWith(
+        color: ColorStyles.main1,
+        fontSize: widget.hintSize,
+      ),
 
       // 커서 프리셋
       cursorColor: ColorStyles.main1,

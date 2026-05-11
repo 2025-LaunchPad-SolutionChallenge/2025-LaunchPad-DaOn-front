@@ -44,22 +44,44 @@ class OnboardingData {
   static final List<OnboardingQuestion> section2DisasterBase = [
     OnboardingQuestion(
       section: 2,
-      type: 1,
+      type: 4,
       seconText: '나의 재난 정보 입력',
       question: '어떤 재난을\n겪으셨나요?',
-      options: ['홍수/침수', '태풍', '지진', '화재'],
+      options: ['홍수', '태풍', '지진', '화재'],
     ),
   ];
 
   // 2) 선택에 따라 달라지는 섹션 2의 상세 질문들
   static final Map<String, List<OnboardingQuestion>> section2DisasterDetails = {
-    '홍수/침수': [
+    '홍수': [
       OnboardingQuestion(
         section: 2,
         type: 1,
         seconText: '나의 재난 정보 입력',
         question: '지금 상황에 가장 가까운 상태를\n선택해주세요.',
         options: ['안전한 상태에요', '약간의 피해가 있어요', '피해가 발생했어요', '긴급한 도움이 필요해요'],
+      ),
+      OnboardingQuestion(
+        section: 2,
+        type: 1,
+        seconText: '나의 재난 정보 입력',
+        question: '현재 집에서 정상적으로\n거주가 가능하신가요?',
+        options: ['정상적으로 거주 가능해요', '일부 파손되었지만 거주 가능해요', '현재 거주하기 어려워요'],
+      ),
+      OnboardingQuestion(
+        section: 2,
+        type: 1,
+        seconText: '나의 재난 정보 입력',
+        question: '다치신 곳이나\n몸 상태는 괜찮으신가요?',
+        options: ['괜찮아요', '가벼운 부상이 있어요(경상)', '치료가 필요해요(중상)'],
+      ),
+      OnboardingQuestion(
+        section: 2,
+        type: 4,
+        isMultipleSelection: true,
+        seconText: '나의 재난 정보 입력',
+        question: '현재 어떤 피해를\n겪고 계신가요? (복수 선택)',
+        options: ['주거 공간 피해', '차량 피해', '전기 문제', '수도 문제', '심리적 불안감'],
       ),
       OnboardingQuestion(
         section: 2,
@@ -75,28 +97,6 @@ class OnboardingData {
         question: '침수되었던 물은\n어느 정도 빠진 상태인가요?',
         options: ['아직 물이 고여있어요', '일부 빠졌어요', '대부분 빠졌어요'],
       ),
-      OnboardingQuestion(
-        section: 2,
-        type: 1,
-        isMultipleSelection: true,
-        seconText: '나의 재난 정보 입력',
-        question: '현재 어떤 피해를\n겪고 계신가요? (복수 선택)',
-        options: ['주거 공간 피해', '차량 피해', '전기 문제', '수도 문제', '심리적 불안감', '기타'],
-      ),
-      OnboardingQuestion(
-        section: 2,
-        type: 1,
-        seconText: '나의 재난 정보 입력',
-        question: '현재 집에서 정상적으로\n거주가 가능하신가요?',
-        options: ['정상적으로 거주 가능해요', '일부 파손되었지만 거주 가능해요', '현재 거주하기 어려워요'],
-      ),
-      OnboardingQuestion(
-        section: 2,
-        type: 1,
-        seconText: '나의 재난 정보 입력',
-        question: '다치신 곳이나\n몸 상태는 괜찮으신가요?',
-        options: ['괜찮아요', '가벼운 부상이 있어요(경상)', '치료가 필요해요(중상)'],
-      ),
     ],
 
     '태풍': [
@@ -110,6 +110,20 @@ class OnboardingData {
       OnboardingQuestion(
         section: 2,
         type: 1,
+        seconText: '나의 재난 정보 입력',
+        question: '현재 집에서 정상적으로\n거주가 가능하신가요?',
+        options: ['정상적으로 거주 가능해요', '일부 파손되었지만 거주 가능해요', '현재 거주하기 어려워요'],
+      ),
+      OnboardingQuestion(
+        section: 2,
+        type: 1,
+        seconText: '나의 재난 정보 입력',
+        question: '다치신 곳이나\n몸 상태는 괜찮으신가요?',
+        options: ['괜찮아요', '가벼운 부상이 있어요(경상)', '치료가 필요해요(중상)'],
+      ),
+      OnboardingQuestion(
+        section: 2,
+        type: 4,
         isMultipleSelection: true,
         seconText: '나의 재난 정보 입력',
         question: '현재 어떤 피해를\n겪고 계신가요? (복수 선택)',
@@ -122,22 +136,7 @@ class OnboardingData {
           '수도 문제',
           '부상',
           '심리적 불안감',
-          '기타',
         ],
-      ),
-      OnboardingQuestion(
-        section: 2,
-        type: 1,
-        seconText: '나의 재난 정보 입력',
-        question: '현재 집에서 정상적으로\n거주가 가능하신가요?',
-        options: ['정상적으로 거주 가능해요', '일부 파손되었지만 거주 가능해요', '현재 거주하기 어려워요'],
-      ),
-      OnboardingQuestion(
-        section: 2,
-        type: 1,
-        seconText: '나의 재난 정보 입력',
-        question: '다치신 곳이나\n몸 상태는 괜찮으신가요?',
-        options: ['괜찮아요', '가벼운 부상이 있어요(경상)', '치료가 필요해요(중상)'],
       ),
     ],
 
@@ -153,12 +152,19 @@ class OnboardingData {
         section: 2,
         type: 1,
         seconText: '나의 재난 정보 입력',
-        question: '현재 여진이 느껴지거나\n불안감이 있으신가요?',
-        options: ['느껴지지 않아요', '가끔 느껴져요', '지속적으로 느껴져요'],
+        question: '현재 집에서 정상적으로\n거주가 가능하신가요?',
+        options: ['정상적으로 거주 가능해요', '일부 파손되었지만 거주 가능해요', '현재 거주하기 어려워요'],
       ),
       OnboardingQuestion(
         section: 2,
         type: 1,
+        seconText: '나의 재난 정보 입력',
+        question: '다치신 곳이나\n몸 상태는 괜찮으신가요?',
+        options: ['괜찮아요', '가벼운 부상이 있어요(경상)', '치료가 필요해요(중상)'],
+      ),
+      OnboardingQuestion(
+        section: 2,
+        type: 4,
         isMultipleSelection: true,
         seconText: '나의 재난 정보 입력',
         question: '현재 어떤 피해를\n겪고 계신가요? (복수 선택)',
@@ -170,8 +176,24 @@ class OnboardingData {
           '수도 단수',
           '부상',
           '심리적 불안감',
-          '기타',
         ],
+      ),
+      OnboardingQuestion(
+        section: 2,
+        type: 1,
+        seconText: '나의 재난 정보 입력',
+        question: '현재 여진이 느껴지거나\n불안감이 있으신가요?',
+        options: ['느껴지지 않아요', '가끔 느껴져요', '지속적으로 느껴져요'],
+      ),
+    ],
+
+    '화재': [
+      OnboardingQuestion(
+        section: 2,
+        type: 1,
+        seconText: '나의 재난 정보 입력',
+        question: '지금 상황에 가장 가까운 상태를\n선택해주세요.',
+        options: ['안전한 상태에요', '약간의 피해가 있어요', '피해가 발생했어요', '긴급한 도움이 필요해요'],
       ),
       OnboardingQuestion(
         section: 2,
@@ -187,9 +209,23 @@ class OnboardingData {
         question: '다치신 곳이나\n몸 상태는 괜찮으신가요?',
         options: ['괜찮아요', '가벼운 부상이 있어요(경상)', '치료가 필요해요(중상)'],
       ),
-    ],
-
-    '화재': [
+      OnboardingQuestion(
+        section: 2,
+        type: 4,
+        isMultipleSelection: true,
+        seconText: '나의 재난 정보 입력',
+        question: '현재 어떤 피해를\n겪고 계신가요? (복수 선택)',
+        options: [
+          '주거 공간 피해',
+          '차량 피해',
+          '전기 문제',
+          '수도 문제',
+          '부상',
+          '심리적 불안감',
+          '그을음 피해',
+          '화재 잔해 발생',
+        ],
+      ),
       OnboardingQuestion(
         section: 2,
         type: 1,
@@ -203,38 +239,6 @@ class OnboardingData {
         seconText: '나의 재난 정보 입력',
         question: '화재 당시 연기를\n얼마나 들이마셨나요?',
         options: ['마시지 않았어요', '약간 마셨어요', '심하게 마셨어요'],
-      ),
-      OnboardingQuestion(
-        section: 2,
-        type: 1,
-        isMultipleSelection: true,
-        seconText: '나의 재난 정보 입력',
-        question: '현재 어떤 피해를\n겪고 계신가요? (복수 선택)',
-        options: [
-          '주거 공간 피해',
-          '차량 피해',
-          '전기 문제',
-          '수도 문제',
-          '부상',
-          '심리적 불안감',
-          '그을음 피해',
-          '화재 잔해 발생',
-          '기타',
-        ],
-      ),
-      OnboardingQuestion(
-        section: 2,
-        type: 1,
-        seconText: '나의 재난 정보 입력',
-        question: '현재 집에서 정상적으로\n거주가 가능하신가요?',
-        options: ['정상적으로 거주 가능해요', '일부 파손되었지만 거주 가능해요', '현재 거주하기 어려워요'],
-      ),
-      OnboardingQuestion(
-        section: 2,
-        type: 1,
-        seconText: '나의 재난 정보 입력',
-        question: '다치신 곳이나\n몸 상태는 괜찮으신가요?',
-        options: ['괜찮아요', '가벼운 부상이 있어요(경상)', '치료가 필요해요(중상)'],
       ),
     ],
   };

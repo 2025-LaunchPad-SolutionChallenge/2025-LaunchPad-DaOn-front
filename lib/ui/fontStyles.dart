@@ -38,8 +38,20 @@ abstract class FontStyles {
     fontWeight: FontWeight.w500,
     letterSpacing: -0.33,
   );
+  static const TextStyle med15 = TextStyle(
+    fontSize: 15,
+    fontFamily: 'Pretendard',
+    fontWeight: FontWeight.w500,
+    letterSpacing: -0.33,
+  );
   static const TextStyle med14 = TextStyle(
     fontSize: 14,
+    fontFamily: 'Pretendard',
+    fontWeight: FontWeight.w500,
+    letterSpacing: -0.33,
+  );
+  static const TextStyle med12 = TextStyle(
+    fontSize: 12,
     fontFamily: 'Pretendard',
     fontWeight: FontWeight.w500,
     letterSpacing: -0.33,

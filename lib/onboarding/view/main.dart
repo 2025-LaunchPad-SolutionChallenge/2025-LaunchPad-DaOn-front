@@ -3,7 +3,7 @@ import 'package:project_daon/common/widget/buttonGroupManager.dart';
 import 'package:project_daon/common/widget/greenBackButton.dart';
 import 'package:project_daon/common/widget/lineTextField.dart';
 import 'package:project_daon/onboarding/widget/questionWidget.dart';
-import 'package:project_daon/onboarding/widget/textFieldWidget.dart';
+import 'package:project_daon/common/widget/textFieldWidget.dart';
 import '../../common/widget/gradientButton.dart';
 import '../../common/widget/greenButton.dart';
 import '../../common/widget/progressBar.dart';

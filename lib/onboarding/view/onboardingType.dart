@@ -3,7 +3,7 @@ import 'package:project_daon/common/widget/buttonGroupManager.dart';
 import 'package:project_daon/common/widget/greenBackButton.dart';
 import 'package:project_daon/common/widget/lineTextField.dart';
 import 'package:project_daon/onboarding/widget/questionWidget.dart';
-import 'package:project_daon/onboarding/widget/textFieldWidget.dart';
+import 'package:project_daon/common/widget/textFieldWidget.dart';
 import 'package:project_daon/ui/colorStyles.dart';
 import 'package:project_daon/ui/fontStyles.dart';
 import '../../common/widget/gradientButton.dart';
@@ -40,6 +40,7 @@ class OnboardingType extends StatefulWidget {
     required this.onNext,
   });
 
+  @override
   State<OnboardingType> createState() => _OnboardingTypeState();
 }
 
@@ -50,11 +51,10 @@ class _OnboardingTypeState extends State<OnboardingType> {
   @override
   void initState() {
     super.initState();
-    print("🎨 현재 페이지 : ${widget.currentPage} / 최종 페이지 : ${widget.totalPage}");
     // 텍스트 입력 감지
     _textController = TextEditingController();
     _textController.addListener(() {
-      setState(() {}); // 글자 입력마다 버튼 활성화 확인
+      setState(() {});
     });
   }
 
@@ -65,7 +65,8 @@ class _OnboardingTypeState extends State<OnboardingType> {
   }
 
   bool get _isNextEnabled {
-    if (widget.onboardingType == 1) {
+    // ⭐ 해결 1: 타입 4(재난 종류 선택 바둑판)일 때도 선택 여부를 감지하도록 추가!
+    if (widget.onboardingType == 1 || widget.onboardingType == 4) {
       return _selectedOption != null && _selectedOption!.isNotEmpty;
     } else {
       return _textController.text.trim().isNotEmpty;
@@ -77,7 +78,7 @@ class _OnboardingTypeState extends State<OnboardingType> {
     return Scaffold(
       body: SafeArea(
         child: Container(
-          padding: EdgeInsets.only(
+          padding: const EdgeInsets.only(
             left: 16.0,
             right: 16.0,
             top: 24.0,
@@ -94,36 +95,36 @@ class _OnboardingTypeState extends State<OnboardingType> {
                       currentStep: widget.currentPage! - 1,
                       totalStep: widget.totalPage! - 1,
                     ),
-                    SizedBox(height: 100.0),
+                    const SizedBox(height: 100.0),
                     Text(
                       widget.seconText ?? "",
                       style: FontStyles.med16.copyWith(
                         color: ColorStyles.main1,
                       ),
                     ),
-                    SizedBox(height: 2.0),
+                    const SizedBox(height: 2.0),
                     QuestionWidget(text: widget.question ?? ''),
+
                     if (widget.onboardingType == 1) ...[
-                      SizedBox(height: 70.0),
+                      const SizedBox(height: 70.0),
                       ButtonGroupManager(
                         options: widget.options ?? [],
                         isMultipleSelection:
                             widget.isMultipleSelection ?? false,
                         onChanged: (selectedList) {
-                          print('현재 선택된 항목들: $selectedList');
                           setState(() {
                             _selectedOption = selectedList;
                           });
                         },
                       ),
                     ] else if (widget.onboardingType == 2) ...[
-                      SizedBox(height: 120.0),
+                      const SizedBox(height: 120.0),
                       TextFieldWidget(
                         hintText: widget.hintText!,
                         controller: _textController,
                       ),
                     ] else if (widget.onboardingType == 3) ...[
-                      SizedBox(height: 120.0),
+                      const SizedBox(height: 120.0),
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -134,26 +135,23 @@ class _OnboardingTypeState extends State<OnboardingType> {
                               controller: _textController,
                             ),
                           ),
-                          SizedBox(width: 10.0),
+                          const SizedBox(width: 10.0),
                           GreenBackButton(
                             text: widget.btnText!,
                             width: 80.0,
                             height: 48.0,
-                            onPressed: () {
-                              // 검색 로직
-                            },
+                            onPressed: () {},
                           ),
                         ],
                       ),
                     ] else if (widget.onboardingType == 4) ...[
-                      SizedBox(height: 70.0),
+                      const SizedBox(height: 70.0),
                       ButtonGroupManager(
                         options: widget.options ?? [],
                         isMultipleSelection:
                             widget.isMultipleSelection ?? false,
                         isGrid: true,
                         onChanged: (selectedList) {
-                          print('현재 선택된 항목들: $selectedList');
                           setState(() {
                             _selectedOption = selectedList;
                           });
@@ -172,7 +170,7 @@ class _OnboardingTypeState extends State<OnboardingType> {
                         onPressed: widget.onPrevious,
                       ),
                     ),
-                    SizedBox(width: 10.0),
+                    const SizedBox(width: 10.0),
                   ],
                   Expanded(
                     child: GradientButton(
@@ -181,10 +179,12 @@ class _OnboardingTypeState extends State<OnboardingType> {
                           : '다음',
                       onPressed: _isNextEnabled
                           ? () {
-                              FocusScope.of(context).unfocus(); // 키보드 닫기
+                              FocusScope.of(context).unfocus();
 
                               dynamic result;
-                              if (widget.onboardingType == 1) {
+                              // ⭐ 해결 2: 타입 4일 때도 String이 아닌 List<String>(_selectedOption)을 던지도록 추가!
+                              if (widget.onboardingType == 1 ||
+                                  widget.onboardingType == 4) {
                                 result = _selectedOption;
                               } else {
                                 result = _textController.text;
