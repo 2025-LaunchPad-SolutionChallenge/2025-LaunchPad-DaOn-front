@@ -38,6 +38,13 @@ dependencies:
   percent_indicator: ^4.2.5
   dio: ^5.9.2
 
+  # firebase 관련 모듈 설치
+  firebase_core: ^4.9.0
+  firebase_auth: ^6.5.1
+  google_sign_in: ^7.2.0
+  flutter_secure_storage: ^10.2.0
+  http: ^1.6.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -50,7 +57,7 @@ dev_dependencies:
   flutter_lints: ^5.0.0
 
 # For information on the generic Dart part of this file, see the
-# following page: https://dart.dev/tools/pub/pubspec
+# following view: https://dart.dev/tools/pub/pubspec
 
 # The following section is specific to Flutter packages.
 flutter:
@@ -62,4 +69,5 @@ flutter:
     - assets/appbar/
     - assets/home/
     - assets/checklist/
+    - assets/login/
 
