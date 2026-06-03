@@ -1,6 +1,6 @@
 class OnboardingQuestion {
   final int section;
-  final int type; // page 구분
+  final int type; // view 구분
   final String question; // section 공통 : 질문
   final List<String>? options; // section 1 : 선택지
 

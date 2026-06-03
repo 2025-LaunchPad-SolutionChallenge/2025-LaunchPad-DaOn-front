@@ -4,15 +4,14 @@ import '../../ui/fontStyles.dart';
 
 class GradientButton extends StatelessWidget {
   final String text;
-  final VoidCallback? onPressed; // null이면 자동 비활성화
-  final double? width; // null 허용 (기본값 infinity 처리)
-  final double height; // 기본값 설정 예정
-
+  final VoidCallback? onPressed;
+  final double? width;
+  final double height;
   const GradientButton({
     Key? key,
     required this.text,
     this.onPressed,
-    this.width, // 명시하지 않으면 null
+    this.width,
     this.height = 57.0,
   }) : super(key: key);
 
@@ -28,8 +27,8 @@ class GradientButton extends StatelessWidget {
           colors: isDisabled
               ? [ColorStyles.secon3, ColorStyles.secon4]
               : [ColorStyles.main1, ColorStyles.main3], // 원하는 색상 조합
-          begin: Alignment(0.02, -0.00),
-          end: Alignment(1.00, 1.00),
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
         ),
         borderRadius: BorderRadius.circular(7), // 버튼과 동일한 곡률
       ),

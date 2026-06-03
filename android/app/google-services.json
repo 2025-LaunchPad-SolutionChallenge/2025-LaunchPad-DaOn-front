@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "834015954",
+    "project_id": "daon-launchpad",
+    "storage_bucket": "daon-launchpad.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:834015954:android:076b164747a43ba416530b",
+        "android_client_info": {
+          "package_name": "com.example.project_daon"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "834015954-t0rcd1sn47apmjvn7fm2mncfj7mgjch2.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.project_daon",
+            "certificate_hash": "cd6765c50a224ba56cfbb638d9a3e8d5e155ccd7"
+          }
+        },
+        {
+          "client_id": "834015954-nk1grmaa8hr7v2uq3ca7j8inhkl9a95k.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCbTvn0z5L5Q5-kgYpKjAGTjxcqkrivaRM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "834015954-nk1grmaa8hr7v2uq3ca7j8inhkl9a95k.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

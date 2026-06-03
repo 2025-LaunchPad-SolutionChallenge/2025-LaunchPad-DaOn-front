@@ -40,8 +40,8 @@ class _HomePageState extends State<HomePage> {
             height: double.infinity,
             decoration: const BoxDecoration(
               gradient: LinearGradient(
-                begin: Alignment(0.00, 0.00),
-                end: Alignment(1.00, 0.71),
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
                 colors: [ColorStyles.main2, ColorStyles.main3],
               ),
             ),
