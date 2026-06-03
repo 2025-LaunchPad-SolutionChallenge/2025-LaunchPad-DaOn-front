@@ -219,10 +219,14 @@ class _ChecklistPageState extends State<ChecklistPage> {
                 padding: const EdgeInsets.symmetric(vertical: 16.0),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Text(
-                      '${_currentSelectedDate.month}.${_currentSelectedDate.day}',
-                      style: FontStyles.med20,
+                    SizedBox(
+                      height: 33.0,
+                      child: Text(
+                        '${_currentSelectedDate.month}.${_currentSelectedDate.day}',
+                        style: FontStyles.med20,
+                      ),
                     ),
                     if (_selectedIndex == 1)
                       PictureButton(
@@ -245,7 +249,6 @@ class _ChecklistPageState extends State<ChecklistPage> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const SizedBox(height: 16.0),
                         if (dummyChecklists.isEmpty)
                           const Center(child: CheckNullWidget())
                         else
@@ -279,20 +282,20 @@ class _ChecklistPageState extends State<ChecklistPage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // 상단 테스트용 모달 버튼들 (요청하신 부분 그대로 유지)
-                          ElevatedButton(
-                            onPressed: () {
-                              _showBottomSheet();
-                            },
-                            child: const Text('아카이빙 바텀시트 1'),
-                          ),
-                          ElevatedButton(
-                            onPressed: () {
-                              _showBottomSheet22();
-                            },
-                            child: const Text('아카이빙 바텀시트 2'),
-                          ),
-                          const SizedBox(height: 16.0),
+                          // // 상단 테스트용 모달 버튼들 (요청하신 부분 그대로 유지)
+                          // ElevatedButton(
+                          //   onPressed: () {
+                          //     _showBottomSheet();
+                          //   },
+                          //   child: const Text('아카이빙 바텀시트 1'),
+                          // ),
+                          // ElevatedButton(
+                          //   onPressed: () {
+                          //     _showBottomSheet22();
+                          //   },
+                          //   child: const Text('아카이빙 바텀시트 2'),
+                          // ),
+                          // const SizedBox(height: 16.0),
 
                           // 1. 메모 컴포넌트
                           Container(
