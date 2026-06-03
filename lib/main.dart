@@ -21,8 +21,14 @@ class MyApp extends StatelessWidget {
           centerTitle: true,
         ),
       ),
-      home: SwitchPage(),
-      // home: OnboardingController(),
+
+      // 로그인 성공 후 Navigator.pushReplacementNamed()로 이동할 수 있게 route 등록
+      initialRoute: '/home',
+      routes: {
+        // '/login': (context) => const LoginPage(),
+        '/onboarding': (context) => OnboardingController(),
+        '/home': (context) => SwitchPage(),
+      },
     );
   }
 }
