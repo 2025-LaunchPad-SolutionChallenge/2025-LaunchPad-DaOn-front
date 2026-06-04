@@ -45,6 +45,10 @@ dependencies:
   flutter_secure_storage: ^10.2.0
   http: ^1.6.0
 
+  # 지도 관련 모듈 설치
+  geolocator: ^14.0.0
+  flutter_naver_map: ^1.4.4
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

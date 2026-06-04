@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:project_daon/common/view/new.dart';
 import 'package:project_daon/onboarding/api/onboardingApi.dart';
 import '../model/onboardingQuestion.dart';
 import 'onboardingType.dart';
@@ -77,6 +78,7 @@ class _OnboardingControllerState extends State<OnboardingController> {
       // 마지막 페이지 도달 시 API 통신
       final onboardingApi = OnboardingApi();
       onboardingApi.submitSurvey(_userAnswers, _selectedDisaster);
+      Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
     }
   }
 
