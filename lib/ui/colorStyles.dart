@@ -11,7 +11,8 @@ abstract class ColorStyles {
   static const Color secon2 = Color(0xFFF8FFDB); // 보조 노랑
   static const Color secon3 = Color(0xFF74D8BC); // 그라데이션 초록
   static const Color secon4 = Color(0xFFECEEC7); // 그라데이션 노랑
-  static const Color secon5 = Color(0xFFE4F7E5); // 그라데이션 노랑
+  static const Color secon5 = Color(0xFFE4F7E5); // 버튼 민트
+  static const Color secon6 = Color(0x8000C18E); // 버튼 민트
 
   // 검정 색상
   static const Color black1 = Color(0xFF121212); // 기본 검정

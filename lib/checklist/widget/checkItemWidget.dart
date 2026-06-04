@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:project_daon/ui/colorStyles.dart';
 import 'package:project_daon/ui/fontStyles.dart';
 
@@ -44,10 +45,6 @@ class _ChecklistItemWidgetState extends State<ChecklistItemWidget> {
 
   @override
   Widget build(BuildContext context) {
-    // 임시 색상 (ColorStyles.main2, secon5를 대체)
-    final Color main2 = const Color(0xFF5CAE8B);
-    final Color secon5 = const Color(0xFFB5E3C5);
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -84,7 +81,6 @@ class _ChecklistItemWidgetState extends State<ChecklistItemWidget> {
                 child: Row(
                   children: [
                     if (widget.item.isAiGenerated) ...[
-                      // AI 제미나이 로고 (아이콘으로 대체, 실제 에셋이 있다면 Image.asset 사용)
                       const Icon(
                         Icons.auto_awesome,
                         size: 16,
@@ -107,11 +103,10 @@ class _ChecklistItemWidgetState extends State<ChecklistItemWidget> {
 
             // 3. 더보기 버튼 (...)
             IconButton(
-              icon: const Icon(Icons.more_horiz, color: Colors.grey),
               padding: EdgeInsets.zero,
+              icon: SvgPicture.asset('assets/checklist/dot.svg'),
               constraints: const BoxConstraints(),
               onPressed: () {
-                // 부모 위젯으로 아이템 데이터 전달
                 widget.onOptionsTap(widget.item);
               },
             ),
@@ -120,13 +115,13 @@ class _ChecklistItemWidgetState extends State<ChecklistItemWidget> {
 
         // 4. 펼쳐졌을 때 보이는 상세 영역 (Text & File)
         AnimatedSize(
-          duration: const Duration(milliseconds: 300),
+          duration: const Duration(milliseconds: 200),
           curve: Curves.easeInOut,
           child: _isExpanded
               ? Padding(
                   padding: const EdgeInsets.only(
                     left: 22.0,
-                    top: 12.0,
+                    // top: 12.0,
                     bottom: 12.0,
                   ),
                   child: Column(
@@ -166,25 +161,22 @@ class _ChecklistItemWidgetState extends State<ChecklistItemWidget> {
                                 children: widget.item.imageUrls.take(3).map((
                                   url,
                                 ) {
-                                  return ClipRRect(
-                                    borderRadius: BorderRadius.circular(4),
-                                    child: Image.network(
-                                      url,
-                                      width: 60,
-                                      height: 60,
-                                      fit: BoxFit.cover,
-                                      errorBuilder:
-                                          (context, error, stackTrace) =>
-                                              Container(
-                                                width: 60,
-                                                height: 60,
-                                                color: Colors.grey[300],
-                                                child: const Icon(
-                                                  Icons.image,
-                                                  color: Colors.grey,
-                                                ),
+                                  return Image.network(
+                                    url,
+                                    width: 95,
+                                    height: 95,
+                                    fit: BoxFit.cover,
+                                    errorBuilder:
+                                        (context, error, stackTrace) =>
+                                            Container(
+                                              width: 95,
+                                              height: 95,
+                                              color: Colors.grey[300],
+                                              child: const Icon(
+                                                Icons.image,
+                                                color: Colors.grey,
                                               ),
-                                    ),
+                                            ),
                                   );
                                 }).toList(),
                               ),
@@ -196,7 +188,7 @@ class _ChecklistItemWidgetState extends State<ChecklistItemWidget> {
                 )
               : const SizedBox.shrink(),
         ),
-        const SizedBox(height: 16), // 아이템 간 간격
+        // const SizedBox(height: 16), // 아이템 간 간격
       ],
     );
   }
@@ -204,9 +196,11 @@ class _ChecklistItemWidgetState extends State<ChecklistItemWidget> {
   // Text, File 태그 위젯 생성 헬퍼 메서드
   Widget _buildTag(String text) {
     return Container(
+      width: 40,
+      alignment: Alignment.center,
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
-        color: const Color(0xFFA2DABF), // 이미지상의 밝은 민트색
+        color: ColorStyles.secon6,
         borderRadius: BorderRadius.circular(4),
       ),
       child: Text(
