@@ -159,7 +159,15 @@ class _OnboardingTypeState extends State<OnboardingType> {
   }
 
   /// inputFormat에 맞는 TextFieldWidget 반환 (type 2 전용)
+  /// maxLines: 1로 개행을 막되, contentPadding을 늘려 3줄 높이처럼 보이게 함
   Widget _buildTextFieldForType2() {
+    const tallPadding = EdgeInsets.only(
+      top: 12.0,
+      bottom: 60.0,
+      right: 12.0,
+      left: 12.0,
+    );
+
     if (widget.inputFormat == 'birthDate') {
       return TextFieldWidget(
         hintText: widget.hintText ?? '',
@@ -168,6 +176,7 @@ class _OnboardingTypeState extends State<OnboardingType> {
         keyboardType: TextInputType.number,
         maxLines: 1,
         minLines: 1,
+        contentPadding: tallPadding,
       );
     }
     // name / nickname: 단일 행, 최대 길이 제한, 개행 차단
@@ -181,6 +190,7 @@ class _OnboardingTypeState extends State<OnboardingType> {
       keyboardType: TextInputType.text,
       maxLines: 1,
       minLines: 1,
+      contentPadding: tallPadding,
     );
   }
 

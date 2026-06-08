@@ -12,6 +12,7 @@ class TextFieldWidget extends StatefulWidget {
   final TextInputType keyboardType;
   final int maxLines;
   final int minLines;
+  final EdgeInsetsGeometry? contentPadding;
 
   const TextFieldWidget({
     Key? key,
@@ -23,6 +24,7 @@ class TextFieldWidget extends StatefulWidget {
     this.keyboardType = TextInputType.multiline,
     this.maxLines = 3,
     this.minLines = 3,
+    this.contentPadding,
   }) : super(key: key);
 
   @override
@@ -89,10 +91,9 @@ class _TextFieldWidgetState extends State<TextFieldWidget> {
           borderRadius: BorderRadius.circular(7.0),
         ),
 
-        contentPadding: const EdgeInsets.symmetric(
-          vertical: 12.0,
-          horizontal: 12.0,
-        ),
+        contentPadding:
+            widget.contentPadding ??
+            const EdgeInsets.symmetric(vertical: 12.0, horizontal: 12.0),
       ),
 
       style: FontStyles.med16.copyWith(
