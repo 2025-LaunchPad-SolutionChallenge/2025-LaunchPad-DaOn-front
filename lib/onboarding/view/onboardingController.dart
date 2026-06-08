@@ -90,9 +90,24 @@ class _OnboardingControllerState extends State<OnboardingController> {
         curve: Curves.easeInOut,
       );
     } else {
-      // 마지막 페이지: survey 제출 후 홈으로 (register는 Step 1 완료 시 이미 처리됨)
+      // 마지막 페이지: 재난 피해 현황 제출 후 홈으로
+      // register는 Step 1 완료 시 이미 처리되므로 accessToken이 존재함
       final onboardingApi = OnboardingApi();
-      await onboardingApi.submitSurvey(_userAnswers, _selectedDisaster);
+      try {
+        await onboardingApi.submitDisasterOnboarding(
+          _userAnswers,
+          _selectedDisaster,
+        );
+      } catch (e) {
+        debugPrint('[온보딩] 재난 정보 제출 실패: $e');
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('재난 정보 등록에 실패했습니다. 다시 시도해 주세요.\n${e.toString()}'),
+          ),
+        );
+        return; // 실패 시 홈 이동 없음
+      }
       if (!mounted) return;
       Navigator.of(context).pushNamedAndRemoveUntil('/home', (_) => false);
     }
