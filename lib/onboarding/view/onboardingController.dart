@@ -34,7 +34,7 @@ class _OnboardingControllerState extends State<OnboardingController> {
     super.dispose();
   }
 
-  void _handleNext(dynamic answer) {
+  Future<void> _handleNext(dynamic answer) async {
     _userAnswers[_currentIndex] = answer;
 
     int disasterQuestionIndex = OnboardingData.section1Profile.length;
@@ -75,10 +75,25 @@ class _OnboardingControllerState extends State<OnboardingController> {
         curve: Curves.easeInOut,
       );
     } else {
-      // 마지막 페이지 도달 시 API 통신
+      // 마지막 페이지: register(신규 사용자만) → survey 제출 → 홈
       final onboardingApi = OnboardingApi();
-      onboardingApi.submitSurvey(_userAnswers, _selectedDisaster);
-      Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
+
+      try {
+        await onboardingApi.registerUser(_userAnswers);
+      } catch (e) {
+        debugPrint('[온보딩] register 실패: $e');
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('회원가입에 실패했습니다. 다시 시도해 주세요.\n${e.toString()}'),
+          ),
+        );
+        return; // 등록 실패 시 홈으로 이동하지 않음
+      }
+
+      await onboardingApi.submitSurvey(_userAnswers, _selectedDisaster);
+      if (!mounted) return;
+      Navigator.of(context).pushNamedAndRemoveUntil('/home', (_) => false);
     }
   }
 

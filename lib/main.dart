@@ -4,6 +4,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 
 import 'package:project_daon/firebase_options.dart';
 import 'package:project_daon/login/view/main.dart';
+import 'package:project_daon/core/service/auth_service.dart';
 
 import 'common/switchPage.dart';
 import 'onboarding/view/onboardingController.dart';
@@ -35,6 +36,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: AuthService.navigatorKey,
       title: 'DAON app',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(

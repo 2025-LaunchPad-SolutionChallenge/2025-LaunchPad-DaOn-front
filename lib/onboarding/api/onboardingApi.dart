@@ -1,11 +1,24 @@
 import 'dart:convert';
 
-import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import 'package:project_daon/core/service/auth_service.dart';
 import 'package:project_daon/onboarding/model/onboardingLocation.dart';
 
 class OnboardingApi {
-  final Dio _dio = Dio();
+
+  /// 온보딩 완료 시 name/birthDate와 pending firebase token으로 회원가입 처리
+  /// pending firebase token이 없으면 (기존 사용자) skip
+  Future<void> registerUser(Map<int, dynamic> userAnswers) async {
+    final authService = AuthService();
+    final firebaseToken = await authService.getPendingFirebaseToken();
+    if (firebaseToken == null) return;
+
+    await authService.registerWithOnboardingData(
+      firebaseToken: firebaseToken,
+      name: userAnswers[0] as String? ?? '',
+      birthDate: userAnswers[1] as String? ?? '',
+    );
+  }
 
   Future<void> submitSurvey(
     Map<int, dynamic> userAnswers,
