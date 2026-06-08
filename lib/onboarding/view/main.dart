@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:project_daon/common/widget/buttonGroupManager.dart';
 import 'package:project_daon/common/widget/greenBackButton.dart';
 import 'package:project_daon/common/widget/lineTextField.dart';
+import 'package:project_daon/core/config/apiKeys.dart';
 import 'package:project_daon/onboarding/widget/questionWidget.dart';
 import 'package:project_daon/common/widget/textFieldWidget.dart';
 import '../../common/widget/gradientButton.dart';
@@ -53,6 +54,18 @@ class OnboardingPage extends StatelessWidget {
                   height: 48.0,
                   onPressed: () {
                     // 검색 로직
+                    debugPrint(
+                      'Kakao key loaded: ${AppKeys.kakaoRestApiKey.isNotEmpty}',
+                    );
+                    debugPrint(
+                      'Kakao key length: ${AppKeys.kakaoRestApiKey.length}',
+                    );
+                    debugPrint(
+                      'Naver key loaded: ${AppKeys.naverMapClientId.isNotEmpty}',
+                    );
+                    debugPrint(
+                      'Naver key length: ${AppKeys.naverMapClientId.length}',
+                    );
                   },
                 ),
               ],

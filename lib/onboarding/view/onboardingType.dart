@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:project_daon/common/widget/buttonGroupManager.dart';
 import 'package:project_daon/common/widget/greenBackButton.dart';
 import 'package:project_daon/common/widget/lineTextField.dart';
+import 'package:project_daon/onboarding/model/onboardingLocation.dart';
+import 'package:project_daon/onboarding/view/onboardingLocationConfirmPage.dart';
 import 'package:project_daon/onboarding/widget/questionWidget.dart';
 import 'package:project_daon/common/widget/textFieldWidget.dart';
 import 'package:project_daon/ui/colorStyles.dart';
@@ -21,6 +23,7 @@ class OnboardingType extends StatefulWidget {
   final int? currentPage;
   final int? totalPage;
   final bool? isMultipleSelection;
+  final dynamic initialValue;
   final VoidCallback? onPrevious;
   final Function(dynamic result) onNext;
 
@@ -36,6 +39,7 @@ class OnboardingType extends StatefulWidget {
     this.currentPage = 1,
     this.totalPage = 1,
     this.isMultipleSelection,
+    this.initialValue,
     required this.onPrevious,
     required this.onNext,
   });
@@ -46,16 +50,49 @@ class OnboardingType extends StatefulWidget {
 
 class _OnboardingTypeState extends State<OnboardingType> {
   List<String>? _selectedOption;
+  OnboardingLocation? _selectedLocation;
+
   late TextEditingController _textController;
+
+  bool _isProgrammaticTextChange = false;
 
   @override
   void initState() {
     super.initState();
-    // 텍스트 입력 감지
+
     _textController = TextEditingController();
-    _textController.addListener(() {
+    _applyInitialValue();
+
+    _textController.addListener(_handleTextChanged);
+  }
+
+  void _applyInitialValue() {
+    final initialValue = widget.initialValue;
+
+    if (initialValue is OnboardingLocation) {
+      _selectedLocation = initialValue;
+      _textController.text = initialValue.displayAddress;
+    } else if (initialValue is String) {
+      _textController.text = initialValue;
+    }
+  }
+
+  void _handleTextChanged() {
+    if (_isProgrammaticTextChange) {
       setState(() {});
-    });
+      return;
+    }
+
+    if (widget.onboardingType == 3 && _selectedLocation != null) {
+      final currentText = _textController.text.trim();
+      final selectedText = _selectedLocation!.displayAddress.trim();
+
+      if (currentText != selectedText) {
+        _selectedLocation = null;
+      }
+    }
+
+    setState(() {});
   }
 
   @override
@@ -65,12 +102,53 @@ class _OnboardingTypeState extends State<OnboardingType> {
   }
 
   bool get _isNextEnabled {
-    // ⭐ 해결 1: 타입 4(재난 종류 선택 바둑판)일 때도 선택 여부를 감지하도록 추가!
     if (widget.onboardingType == 1 || widget.onboardingType == 4) {
       return _selectedOption != null && _selectedOption!.isNotEmpty;
-    } else {
-      return _textController.text.trim().isNotEmpty;
     }
+
+    if (widget.onboardingType == 3) {
+      return _selectedLocation != null;
+    }
+
+    return _textController.text.trim().isNotEmpty;
+  }
+
+  Future<void> _openLocationConfirmPage() async {
+    FocusScope.of(context).unfocus();
+
+    final result = await Navigator.push<OnboardingLocation>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => OnboardingLocationConfirmPage(
+          initialQuery: _textController.text.trim(),
+        ),
+      ),
+    );
+
+    if (!mounted || result == null) return;
+
+    _isProgrammaticTextChange = true;
+    _textController.text = result.displayAddress;
+    _textController.selection = TextSelection.collapsed(
+      offset: _textController.text.length,
+    );
+    _isProgrammaticTextChange = false;
+
+    setState(() {
+      _selectedLocation = result;
+    });
+  }
+
+  dynamic _makeResult() {
+    if (widget.onboardingType == 1 || widget.onboardingType == 4) {
+      return _selectedOption;
+    }
+
+    if (widget.onboardingType == 3) {
+      return _selectedLocation;
+    }
+
+    return _textController.text.trim();
   }
 
   @override
@@ -140,9 +218,21 @@ class _OnboardingTypeState extends State<OnboardingType> {
                             text: widget.btnText!,
                             width: 80.0,
                             height: 48.0,
-                            onPressed: () {},
+                            onPressed: _openLocationConfirmPage,
                           ),
                         ],
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        _selectedLocation == null
+                            ? '검색 후 지도에서 위치를 인증해주세요.'
+                            : '${_selectedLocation!.dong} 인증 완료',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: _selectedLocation == null
+                              ? const Color(0xFF999999)
+                              : ColorStyles.main1,
+                        ),
                       ),
                     ] else if (widget.onboardingType == 4) ...[
                       const SizedBox(height: 70.0),
@@ -180,17 +270,7 @@ class _OnboardingTypeState extends State<OnboardingType> {
                       onPressed: _isNextEnabled
                           ? () {
                               FocusScope.of(context).unfocus();
-
-                              dynamic result;
-                              // ⭐ 해결 2: 타입 4일 때도 String이 아닌 List<String>(_selectedOption)을 던지도록 추가!
-                              if (widget.onboardingType == 1 ||
-                                  widget.onboardingType == 4) {
-                                result = _selectedOption;
-                              } else {
-                                result = _textController.text;
-                              }
-
-                              widget.onNext(result);
+                              widget.onNext(_makeResult());
                             }
                           : null,
                     ),
