@@ -7,6 +7,16 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:project_daon/ui/colorStyles.dart';
 import 'package:project_daon/ui/fontStyles.dart';
 
+class AuthApiException implements Exception {
+  final int statusCode;
+  final String message;
+
+  const AuthApiException({required this.statusCode, required this.message});
+
+  @override
+  String toString() => message;
+}
+
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
@@ -73,7 +83,10 @@ class _LoginPageState extends State<LoginPage> {
       '/api/v1/auth/login',
       data: {'firebaseToken': idToken},
     );
-    return _parseAndPersistLoginResponse(response, fallbackErrorPrefix: '로그인 실패');
+    return _parseAndPersistLoginResponse(
+      response,
+      fallbackErrorPrefix: '로그인 실패',
+    );
   }
 
   Future<BackendLoginResult> _registerToBackend(String idToken) async {
@@ -81,16 +94,22 @@ class _LoginPageState extends State<LoginPage> {
       '/api/v1/auth/register',
       data: {'firebaseToken': idToken},
     );
-    return _parseAndPersistLoginResponse(response, fallbackErrorPrefix: '회원가입 실패');
+    return _parseAndPersistLoginResponse(
+      response,
+      fallbackErrorPrefix: '회원가입 실패',
+    );
   }
 
   Future<BackendLoginResult> _parseAndPersistLoginResponse(
     Response response, {
     required String fallbackErrorPrefix,
   }) async {
-    if (response.statusCode != 200) {
-      throw Exception(
-        _extractServerErrorMessage(
+    final int statusCode = response.statusCode ?? 0;
+
+    if (statusCode < 200 || statusCode >= 300) {
+      throw AuthApiException(
+        statusCode: statusCode,
+        message: _extractServerErrorMessage(
           response,
           fallbackErrorPrefix: fallbackErrorPrefix,
         ),
@@ -103,10 +122,9 @@ class _LoginPageState extends State<LoginPage> {
     await _storage.write(key: 'access_token', value: result.accessToken);
     await _storage.write(key: 'refresh_token', value: result.refreshToken);
     await _storage.write(key: 'token_type', value: result.tokenType);
+
     if (kDebugMode) {
-      // ignore: avoid_print
       print('[AUTH] accessToken=${result.accessToken}');
-      // ignore: avoid_print
       print('[AUTH] refreshToken=${result.refreshToken}');
     }
 
@@ -126,23 +144,29 @@ class _LoginPageState extends State<LoginPage> {
           await _signInWithGoogleAndGetFirebaseIdToken();
 
       if (kDebugMode) {
-        // ignore: avoid_print
         print('[AUTH] firebaseToken=$firebaseIdToken');
       }
 
       try {
         await _loginToBackend(firebaseIdToken);
-      } on Exception catch (e) {
-        final String error = e.toString();
-        if (!error.contains('(404)')) {
-          rethrow;
+
+        if (!mounted) return;
+        Navigator.pushReplacementNamed(context, '/home');
+      } on AuthApiException catch (e) {
+        if (e.statusCode == 404) {
+          await _registerToBackend(firebaseIdToken);
+
+          if (!mounted) return;
+          Navigator.pushReplacementNamed(context, '/onboarding');
+          return;
         }
-        await _registerToBackend(firebaseIdToken);
+
+        if (e.statusCode == 401) {
+          throw Exception('Firebase 토큰 인증에 실패했습니다. 서버 메시지: ${e.message}');
+        }
+
+        throw Exception(e.message);
       }
-
-      if (!mounted) return;
-
-      Navigator.pushReplacementNamed(context, '/home');
     } on DioException catch (e) {
       _showErrorSnackBar(_extractDioErrorMessage(e));
     } on FirebaseAuthException catch (e) {
@@ -312,7 +336,8 @@ class BackendLoginResult {
     return BackendLoginResult(
       accessToken: accessToken,
       refreshToken: refreshToken,
-      tokenType: (json['tokenType'] ?? json['token_type']) as String? ?? 'bearer',
+      tokenType:
+          (json['tokenType'] ?? json['token_type']) as String? ?? 'bearer',
       isNewUser: (json['isNewUser'] ?? json['is_new_user']) as bool? ?? false,
     );
   }
