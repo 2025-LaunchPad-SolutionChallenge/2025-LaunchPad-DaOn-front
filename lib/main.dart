@@ -47,7 +47,7 @@ class MyApp extends StatelessWidget {
       ),
 
       // 로그인 성공 후 Navigator.pushReplacementNamed()로 이동할 수 있게 route 등록
-      initialRoute: '/onboarding',
+      initialRoute: '/login',
       routes: {
         '/login': (context) => const LoginPage(),
         '/onboarding': (context) => OnboardingController(),
