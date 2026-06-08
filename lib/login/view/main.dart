@@ -1,15 +1,21 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-
-// 기존에 사용 중인 커스텀 위젯들
-import 'package:project_daon/common/widget/Dropdwon.dart';
-import 'package:project_daon/home/widget/homeAppBar.dart';
-import 'package:project_daon/home/widget/startBlock.dart';
 import 'package:project_daon/ui/colorStyles.dart';
 import 'package:project_daon/ui/fontStyles.dart';
+
+class AuthApiException implements Exception {
+  final int statusCode;
+  final String message;
+
+  const AuthApiException({required this.statusCode, required this.message});
+
+  @override
+  String toString() => message;
+}
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -74,23 +80,53 @@ class _LoginPageState extends State<LoginPage> {
   /// 2. FastAPI /auth/firebase로 Firebase ID Token 전송
   Future<BackendLoginResult> _loginToBackend(String idToken) async {
     final Response response = await _dio.post(
-      '/auth/firebase',
-      data: {'id_token': idToken},
+      '/api/v1/auth/login',
+      data: {'firebaseToken': idToken},
     );
+    return _parseAndPersistLoginResponse(
+      response,
+      fallbackErrorPrefix: '로그인 실패',
+    );
+  }
 
-    if (response.statusCode != 200) {
-      throw Exception(_extractServerErrorMessage(response));
+  Future<BackendLoginResult> _registerToBackend(String idToken) async {
+    final Response response = await _dio.post(
+      '/api/v1/auth/register',
+      data: {'firebaseToken': idToken},
+    );
+    return _parseAndPersistLoginResponse(
+      response,
+      fallbackErrorPrefix: '회원가입 실패',
+    );
+  }
+
+  Future<BackendLoginResult> _parseAndPersistLoginResponse(
+    Response response, {
+    required String fallbackErrorPrefix,
+  }) async {
+    final int statusCode = response.statusCode ?? 0;
+
+    if (statusCode < 200 || statusCode >= 300) {
+      throw AuthApiException(
+        statusCode: statusCode,
+        message: _extractServerErrorMessage(
+          response,
+          fallbackErrorPrefix: fallbackErrorPrefix,
+        ),
+      );
     }
 
     final Map<String, dynamic> data = _convertToMap(response.data);
-
     final BackendLoginResult result = BackendLoginResult.fromJson(data);
 
     await _storage.write(key: 'access_token', value: result.accessToken);
-
     await _storage.write(key: 'refresh_token', value: result.refreshToken);
-
     await _storage.write(key: 'token_type', value: result.tokenType);
+
+    if (kDebugMode) {
+      print('[AUTH] accessToken=${result.accessToken}');
+      print('[AUTH] refreshToken=${result.refreshToken}');
+    }
 
     return result;
   }
@@ -107,16 +143,29 @@ class _LoginPageState extends State<LoginPage> {
       final String firebaseIdToken =
           await _signInWithGoogleAndGetFirebaseIdToken();
 
-      final BackendLoginResult loginResult = await _loginToBackend(
-        firebaseIdToken,
-      );
+      if (kDebugMode) {
+        print('[AUTH] firebaseToken=$firebaseIdToken');
+      }
 
-      if (!mounted) return;
+      try {
+        await _loginToBackend(firebaseIdToken);
 
-      if (loginResult.isNewUser) {
-        Navigator.pushReplacementNamed(context, '/onboarding');
-      } else {
+        if (!mounted) return;
         Navigator.pushReplacementNamed(context, '/home');
+      } on AuthApiException catch (e) {
+        if (e.statusCode == 404) {
+          await _registerToBackend(firebaseIdToken);
+
+          if (!mounted) return;
+          Navigator.pushReplacementNamed(context, '/onboarding');
+          return;
+        }
+
+        if (e.statusCode == 401) {
+          throw Exception('Firebase 토큰 인증에 실패했습니다. 서버 메시지: ${e.message}');
+        }
+
+        throw Exception(e.message);
       }
     } on DioException catch (e) {
       _showErrorSnackBar(_extractDioErrorMessage(e));
@@ -145,14 +194,21 @@ class _LoginPageState extends State<LoginPage> {
     throw Exception('서버 응답 형식이 올바르지 않습니다.');
   }
 
-  String _extractServerErrorMessage(Response response) {
+  String _extractServerErrorMessage(
+    Response response, {
+    String fallbackErrorPrefix = '로그인 실패',
+  }) {
     final dynamic data = response.data;
 
     if (data is Map && data['detail'] != null) {
-      return '로그인 실패 (${response.statusCode}): ${data['detail']}';
+      return '$fallbackErrorPrefix (${response.statusCode}): ${data['detail']}';
     }
 
-    return '로그인 실패 (${response.statusCode}): 서버에서 토큰을 받아오지 못했습니다.';
+    if (data is Map && data['message'] != null) {
+      return '$fallbackErrorPrefix (${response.statusCode}): ${data['message']}';
+    }
+
+    return '$fallbackErrorPrefix (${response.statusCode}): 서버에서 토큰을 받아오지 못했습니다.';
   }
 
   String _extractDioErrorMessage(DioException e) {
@@ -161,6 +217,10 @@ class _LoginPageState extends State<LoginPage> {
 
     if (data is Map && data['detail'] != null) {
       return '로그인 실패${statusCode != null ? ' ($statusCode)' : ''}: ${data['detail']}';
+    }
+
+    if (data is Map && data['message'] != null) {
+      return '로그인 실패${statusCode != null ? ' ($statusCode)' : ''}: ${data['message']}';
     }
 
     return '로그인 실패${statusCode != null ? ' ($statusCode)' : ''}: ${e.message ?? '네트워크 오류가 발생했습니다.'}';
@@ -209,7 +269,7 @@ class _LoginPageState extends State<LoginPage> {
                               backgroundColor: ColorStyles.white,
                               foregroundColor: ColorStyles.main2,
                               disabledBackgroundColor: ColorStyles.white
-                                  .withOpacity(0.7),
+                                  .withValues(alpha: 0.7),
                               shadowColor: Colors.transparent,
                               elevation: 0,
                               shape: RoundedRectangleBorder(
@@ -260,8 +320,10 @@ class BackendLoginResult {
   });
 
   factory BackendLoginResult.fromJson(Map<String, dynamic> json) {
-    final String? accessToken = json['access_token'] as String?;
-    final String? refreshToken = json['refresh_token'] as String?;
+    final String? accessToken =
+        (json['accessToken'] ?? json['access_token']) as String?;
+    final String? refreshToken =
+        (json['refreshToken'] ?? json['refresh_token']) as String?;
 
     if (accessToken == null || accessToken.isEmpty) {
       throw Exception('서버 응답에 access_token이 없습니다.');
@@ -274,8 +336,9 @@ class BackendLoginResult {
     return BackendLoginResult(
       accessToken: accessToken,
       refreshToken: refreshToken,
-      tokenType: json['token_type'] as String? ?? 'bearer',
-      isNewUser: json['is_new_user'] as bool? ?? false,
+      tokenType:
+          (json['tokenType'] ?? json['token_type']) as String? ?? 'bearer',
+      isNewUser: (json['isNewUser'] ?? json['is_new_user']) as bool? ?? false,
     );
   }
 }
