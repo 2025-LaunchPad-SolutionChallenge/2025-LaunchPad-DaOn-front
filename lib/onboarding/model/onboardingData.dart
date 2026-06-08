@@ -11,13 +11,16 @@ class OnboardingData {
       seconText: '기본 정보 입력',
       question: '본인의 이름을\n입력해주세요.',
       hintText: '이름을 입력해주세요.',
+      num: 6,           // 최대 6자
+      inputFormat: 'name',
     ),
     OnboardingQuestion(
       section: 1,
       type: 2,
       seconText: '기본 정보 입력',
       question: '생년월일을\n입력해주세요.',
-      hintText: '생년월일을 입력해주세요.',
+      hintText: '예) 2004.03.12',
+      inputFormat: 'birthDate', // YYYY.MM.DD 자동 포맷
     ),
     OnboardingQuestion(
       section: 1,
@@ -25,6 +28,8 @@ class OnboardingData {
       seconText: '기본 정보 입력',
       question: '사용할 닉네임을\n입력해주세요.',
       hintText: '닉네임을 설정해주세요.',
+      num: 10,          // 최대 10자
+      inputFormat: 'nickname',
     ),
     OnboardingQuestion(
       section: 1,

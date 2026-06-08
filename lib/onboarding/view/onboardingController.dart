@@ -37,10 +37,28 @@ class _OnboardingControllerState extends State<OnboardingController> {
   Future<void> _handleNext(dynamic answer) async {
     _userAnswers[_currentIndex] = answer;
 
-    int disasterQuestionIndex = OnboardingData.section1Profile.length;
+    final int section1LastIndex = OnboardingData.section1Profile.length - 1;
+    final int disasterQuestionIndex = OnboardingData.section1Profile.length;
 
-    // ⭐ 핵심 해결: type 검사를 완전히 빼버리고, 무조건 '재난 선택' 순서일 때만 분기 로직을 탑니다.
-    // (이러면 뒤에서 type 4인 '피해 정도' 화면을 만나도 절대 이 로직을 타지 않습니다)
+    // Step 1 완료 시점(location 입력 후): register 호출
+    // Step 2부터는 accessToken이 존재하므로 인증된 상태로 진행됨
+    if (_currentIndex == section1LastIndex) {
+      final onboardingApi = OnboardingApi();
+      try {
+        await onboardingApi.registerUser(_userAnswers);
+      } catch (e) {
+        debugPrint('[온보딩] register 실패: $e');
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('회원가입에 실패했습니다. 다시 시도해 주세요.\n${e.toString()}'),
+          ),
+        );
+        return;
+      }
+    }
+
+    // 재난 종류 선택 시: 상세 질문 동적 로드
     if (_currentIndex == disasterQuestionIndex) {
       String newDisaster = (answer as List<String>).first;
 
@@ -48,15 +66,12 @@ class _OnboardingControllerState extends State<OnboardingController> {
         _selectedDisaster = newDisaster;
 
         setState(() {
-          // 기존에 붙어있던 상세 질문들 자르기
           if (_currentSteps.length > disasterQuestionIndex + 1) {
             _currentSteps.removeRange(
               disasterQuestionIndex + 1,
               _currentSteps.length,
             );
           }
-
-          // 선택한 재난에 맞는 상세 질문 이어 붙이기
           if (OnboardingData.section2DisasterDetails.containsKey(
             _selectedDisaster,
           )) {
@@ -75,22 +90,8 @@ class _OnboardingControllerState extends State<OnboardingController> {
         curve: Curves.easeInOut,
       );
     } else {
-      // 마지막 페이지: register(신규 사용자만) → survey 제출 → 홈
+      // 마지막 페이지: survey 제출 후 홈으로 (register는 Step 1 완료 시 이미 처리됨)
       final onboardingApi = OnboardingApi();
-
-      try {
-        await onboardingApi.registerUser(_userAnswers);
-      } catch (e) {
-        debugPrint('[온보딩] register 실패: $e');
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('회원가입에 실패했습니다. 다시 시도해 주세요.\n${e.toString()}'),
-          ),
-        );
-        return; // 등록 실패 시 홈으로 이동하지 않음
-      }
-
       await onboardingApi.submitSurvey(_userAnswers, _selectedDisaster);
       if (!mounted) return;
       Navigator.of(context).pushNamedAndRemoveUntil('/home', (_) => false);
@@ -148,7 +149,7 @@ class _OnboardingControllerState extends State<OnboardingController> {
             hintText: stepData.hintText,
             btnText: stepData.btnText,
             num: stepData.num,
-
+            inputFormat: stepData.inputFormat,
             isMultipleSelection: stepData.isMultipleSelection,
 
             currentPage: sectionCurrentPage,

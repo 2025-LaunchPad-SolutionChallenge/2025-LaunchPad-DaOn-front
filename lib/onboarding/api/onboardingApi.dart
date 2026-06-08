@@ -6,16 +6,28 @@ import 'package:project_daon/onboarding/model/onboardingLocation.dart';
 
 class OnboardingApi {
 
-  /// 온보딩 완료 시 name/birthDate와 pending firebase token으로 회원가입 처리
-  /// pending firebase token이 없으면 (기존 사용자) skip
+  /// Step 1 완료 후 신규 사용자 회원가입 처리
+  /// pending_firebase_token이 없고 access_token도 없으면 로그인 화면으로 이동 후 예외 발생
+  /// pending_firebase_token이 없지만 access_token이 있으면 이미 등록된 상태 → skip
   Future<void> registerUser(Map<int, dynamic> userAnswers) async {
     final authService = AuthService();
     final firebaseToken = await authService.getPendingFirebaseToken();
-    if (firebaseToken == null) return;
 
+    if (firebaseToken == null) {
+      // 이전 버튼 → 재시도 케이스: 이미 register 성공해서 token이 발급된 경우
+      final accessToken = await authService.getAccessToken();
+      if (accessToken != null) return; // 이미 로그인됨, skip
+
+      // pending token도 access token도 없음 → 로그인 만료
+      AuthService.navigatorKey.currentState
+          ?.pushNamedAndRemoveUntil('/login', (_) => false);
+      throw Exception('로그인 정보가 만료되었습니다. 다시 로그인해 주세요.');
+    }
+
+    // userAnswers[1]은 onboardingType._makeResult()에서 이미 YYYY-MM-DD로 변환됨
     await authService.registerWithOnboardingData(
       firebaseToken: firebaseToken,
-      name: userAnswers[0] as String? ?? '',
+      name: (userAnswers[0] as String? ?? '').trim(),
       birthDate: userAnswers[1] as String? ?? '',
     );
   }

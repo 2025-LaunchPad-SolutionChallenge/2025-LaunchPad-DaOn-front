@@ -7,8 +7,10 @@ class OnboardingQuestion {
   final String? seconText; // section 2,3 : 검색창 힌트
   final String? hintText; // section 2,3 : 검색창 힌트
   final String? btnText; // section 2 : 버튼 속 텍스트
-  final int? num; // section 3 : 글자수
+  final int? num; // 최대 글자 수 (type 2: 이름/닉네임, type 3: 주소)
   final bool? isMultipleSelection;
+  // type 2 텍스트 필드의 입력 형식 구분: 'name' | 'birthDate' | 'nickname'
+  final String? inputFormat;
 
   OnboardingQuestion({
     required this.section,
@@ -20,6 +22,7 @@ class OnboardingQuestion {
     this.btnText,
     this.num,
     this.isMultipleSelection = false,
+    this.inputFormat,
   });
 
   // factory OnboardingQuestion.fromJson(Map<String, dynamic> json) {

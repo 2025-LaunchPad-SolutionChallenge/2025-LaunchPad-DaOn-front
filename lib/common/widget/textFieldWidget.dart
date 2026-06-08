@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:project_daon/ui/colorStyles.dart';
 import 'package:project_daon/ui/fontStyles.dart';
 
@@ -7,6 +8,10 @@ class TextFieldWidget extends StatefulWidget {
   final double hintSize;
   final TextEditingController? controller;
   final ValueChanged<String>? onChanged;
+  final List<TextInputFormatter>? inputFormatters;
+  final TextInputType keyboardType;
+  final int maxLines;
+  final int minLines;
 
   const TextFieldWidget({
     Key? key,
@@ -14,6 +19,10 @@ class TextFieldWidget extends StatefulWidget {
     this.hintSize = 16.0,
     this.controller,
     this.onChanged,
+    this.inputFormatters,
+    this.keyboardType = TextInputType.multiline,
+    this.maxLines = 3,
+    this.minLines = 3,
   }) : super(key: key);
 
   @override
@@ -99,9 +108,10 @@ class _TextFieldWidgetState extends State<TextFieldWidget> {
       cursorOpacityAnimates: true,
       obscureText: false,
 
-      keyboardType: TextInputType.multiline,
-      maxLines: 3,
-      minLines: 3,
+      keyboardType: widget.keyboardType,
+      maxLines: widget.maxLines,
+      minLines: widget.minLines,
+      inputFormatters: widget.inputFormatters,
       textAlign: TextAlign.start,
       textAlignVertical: TextAlignVertical.top,
     );
