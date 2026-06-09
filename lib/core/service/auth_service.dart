@@ -35,7 +35,8 @@ class AuthService {
   );
 
   /// MaterialApp에 연결하면 refresh 실패 시 어디서든 /login으로 이동할 수 있습니다.
-  static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+  static final GlobalKey<NavigatorState> navigatorKey =
+      GlobalKey<NavigatorState>();
 
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
   bool _isRefreshing = false;
@@ -103,7 +104,10 @@ class AuthService {
             try {
               await _performRefresh();
               final newToken = await _storage.read(key: 'access_token');
-              final response = await _retryRequest(error.requestOptions, newToken);
+              final response = await _retryRequest(
+                error.requestOptions,
+                newToken,
+              );
               handler.resolve(response);
               return;
             } catch (_) {
@@ -133,7 +137,9 @@ class AuthService {
   /// 401 INVALID_FIREBASE_TOKEN: Firebase 토큰 검증 실패 → 온보딩으로 이동하면 안 됨
   Future<LoginResult> loginWithFirebaseToken(String firebaseToken) async {
     if (kDebugMode) {
-      debugPrint('[인증] POST /api/v1/auth/login | firebaseToken=${_mask(firebaseToken)}');
+      debugPrint(
+        '[인증] POST /api/v1/auth/login | firebaseToken=${_mask(firebaseToken)}',
+      );
     }
 
     final response = await _authDio.post(
@@ -164,7 +170,8 @@ class AuthService {
       throw AuthException(
         status: status,
         code: code,
-        message: '$message\n백엔드 Firebase Admin SDK의 project_id/service account가 프론트 Firebase 프로젝트와 같은지 확인해 주세요.',
+        message:
+            '$message\n백엔드 Firebase Admin SDK의 project_id/service account가 프론트 Firebase 프로젝트와 같은지 확인해 주세요.',
       );
     }
 
@@ -224,7 +231,11 @@ class AuthService {
     }
 
     if (status == 409 || code == 'DUPLICATE_FIREBASE_USER') {
-      throw const AuthException(status: 409, code: 'DUPLICATE_FIREBASE_USER', message: '이미 가입된 계정입니다. 다시 로그인해 주세요.');
+      throw const AuthException(
+        status: 409,
+        code: 'DUPLICATE_FIREBASE_USER',
+        message: '이미 가입된 계정입니다. 다시 로그인해 주세요.',
+      );
     }
 
     throw AuthException(
@@ -280,7 +291,9 @@ class AuthService {
     }
 
     if (kDebugMode) {
-      debugPrint('[인증] POST /api/v1/auth/refresh | refreshToken=${_mask(storedRefreshToken)}');
+      debugPrint(
+        '[인증] POST /api/v1/auth/refresh | refreshToken=${_mask(storedRefreshToken)}',
+      );
     }
 
     final response = await _authDio.post(
@@ -329,8 +342,10 @@ class AuthService {
   }
 
   Future<void> _saveTokensFromResponse(Map<String, dynamic> data) async {
-    final accessToken = (data['accessToken'] ?? data['access_token']) as String?;
-    final refreshToken = (data['refreshToken'] ?? data['refresh_token']) as String?;
+    final accessToken =
+        (data['accessToken'] ?? data['access_token']) as String?;
+    final refreshToken =
+        (data['refreshToken'] ?? data['refresh_token']) as String?;
 
     if (accessToken == null || accessToken.isEmpty) {
       throw Exception('서버 응답에 accessToken이 없습니다.');
@@ -341,6 +356,11 @@ class AuthService {
     }
 
     await saveTokens(accessToken: accessToken, refreshToken: refreshToken);
+
+    if (kDebugMode) {
+      debugPrint('[DEBUG] accessToken=$accessToken');
+      debugPrint('[DEBUG] refreshToken=$refreshToken');
+    }
 
     if (kDebugMode) {
       debugPrint('[인증] 토큰 저장 완료: accessToken=${_mask(accessToken)}');
@@ -369,7 +389,9 @@ class AuthService {
 
   String _errorMessage(dynamic data, String fallback) {
     if (data is Map) {
-      return data['message']?.toString() ?? data['detail']?.toString() ?? fallback;
+      return data['message']?.toString() ??
+          data['detail']?.toString() ??
+          fallback;
     }
     return fallback;
   }
@@ -402,7 +424,8 @@ class AuthService {
       onRequest: (options, handler) {
         debugPrint('[$tag 요청] ${options.method} ${options.path}');
 
-        final hasAuth = options.headers.containsKey('Authorization') &&
+        final hasAuth =
+            options.headers.containsKey('Authorization') &&
             options.headers['Authorization'] != null;
         debugPrint('[$tag 요청 헤더] Authorization=${hasAuth ? '있음' : '없음'}');
 

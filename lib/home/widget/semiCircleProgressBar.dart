@@ -25,7 +25,7 @@ class SemiCircleProgressBar extends StatelessWidget {
         animationDuration: 300,
 
         center: Padding(
-          padding: const EdgeInsets.only(bottom: 40.0),
+          padding: const EdgeInsets.only(bottom: 45.0, left: 5.0),
           child: Text(
             '${(percentage * 100).toInt()}%',
             style: FontStyles.semi28.copyWith(
