@@ -76,3 +76,22 @@ class OnboardingLocation {
     };
   }
 }
+
+/// 거주지 확인 페이지에서 팝할 때 재난 장소 + 현재 GPS를 함께 전달합니다.
+/// verify API 호출 시점은 register 성공 이후(OnboardingController)입니다.
+class LocationConfirmResult {
+  final OnboardingLocation location;
+  final double currentLatitude;
+  final double currentLongitude;
+
+  /// 현재 GPS를 역지오코딩한 주소. 역지오코딩 실패 시 빈 문자열.
+  /// TODO: currentAddress가 빈 문자열인 경우 백엔드 허용 여부를 확인해주세요.
+  final String currentAddress;
+
+  const LocationConfirmResult({
+    required this.location,
+    required this.currentLatitude,
+    required this.currentLongitude,
+    required this.currentAddress,
+  });
+}

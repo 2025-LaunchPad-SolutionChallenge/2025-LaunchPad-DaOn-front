@@ -1,5 +1,41 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:project_daon/core/service/auth_service.dart';
+
+class ResidenceVerifyResponse {
+  final String status;
+  final bool verified;
+  final double distanceKm;
+  final double thresholdKm;
+  final int? verificationCount;
+  final String? verifiedAt;
+  final String? expiresAt;
+  final String message;
+
+  const ResidenceVerifyResponse({
+    required this.status,
+    required this.verified,
+    required this.distanceKm,
+    required this.thresholdKm,
+    this.verificationCount,
+    this.verifiedAt,
+    this.expiresAt,
+    required this.message,
+  });
+
+  factory ResidenceVerifyResponse.fromJson(Map<String, dynamic> json) {
+    return ResidenceVerifyResponse(
+      status: json['status']?.toString() ?? '',
+      verified: json['verified'] == true,
+      distanceKm: (json['distanceKm'] as num?)?.toDouble() ?? 0.0,
+      thresholdKm: (json['thresholdKm'] as num?)?.toDouble() ?? 10.0,
+      verificationCount: json['verificationCount'] as int?,
+      verifiedAt: json['verifiedAt']?.toString(),
+      expiresAt: json['expiresAt']?.toString(),
+      message: json['message']?.toString() ?? '',
+    );
+  }
+}
 
 class OnboardingApi {
   // ──────────────────────────────────────────────────────────────
@@ -321,5 +357,75 @@ class OnboardingApi {
     if (v.contains('약간')) return 'MILD';
     if (v.contains('심하게')) return 'SEVERE';
     return 'NONE';
+  }
+
+  // ──────────────────────────────────────────────────────────────
+  // 거주지 인증
+  // POST /api/v1/auth/residence/verify  (accessToken 필수 — app Dio 사용)
+  // register 성공 이후에 호출해야 합니다. (OnboardingController._handleNext 참고)
+  // ──────────────────────────────────────────────────────────────
+
+  Future<ResidenceVerifyResponse> verifyResidence({
+    required double disasterLatitude,
+    required double disasterLongitude,
+    required double currentLatitude,
+    required double currentLongitude,
+    required String currentAddress,
+  }) async {
+    const path = '/api/v1/auth/residence/verify';
+    final authService = AuthService();
+
+    if (kDebugMode) {
+      final token = await authService.getAccessToken();
+      debugPrint('[거주지 인증] POST $path');
+      debugPrint('[거주지 인증] Authorization=${token != null && token.isNotEmpty ? '있음' : '없음'}');
+      debugPrint('[거주지 인증] disasterLat=$disasterLatitude disasterLng=$disasterLongitude');
+      debugPrint('[거주지 인증] currentLat=$currentLatitude currentLng=$currentLongitude');
+      debugPrint('[거주지 인증] currentAddress=$currentAddress');
+    }
+
+    try {
+      final response = await authService.dio.post(
+        path,
+        data: {
+          'disasterLatitude': disasterLatitude,
+          'disasterLongitude': disasterLongitude,
+          'currentLatitude': currentLatitude,
+          'currentLongitude': currentLongitude,
+          'currentAddress': currentAddress,
+        },
+      );
+
+      final status = response.statusCode ?? 0;
+      final data = response.data;
+
+      if (kDebugMode) {
+        debugPrint('[거주지 인증 응답] $status | $data');
+      }
+
+      if (data is Map) {
+        return ResidenceVerifyResponse.fromJson(Map<String, dynamic>.from(data));
+      }
+
+      throw Exception('거주지 인증 응답 형식이 올바르지 않습니다 ($status)');
+    } on DioException catch (e) {
+      final status = e.response?.statusCode ?? 0;
+      final data = e.response?.data;
+
+      if (kDebugMode) {
+        debugPrint('[거주지 인증 오류] $status | ${e.message} | $data');
+      }
+
+      if (status == 429) {
+        final retryAfter = e.response?.headers.value('Retry-After');
+        final msg = retryAfter != null
+            ? '거주지 인증은 잠시 후 다시 시도해 주세요. (${retryAfter}초 후 가능)'
+            : '거주지 인증은 잠시 후 다시 시도해 주세요.';
+        throw Exception(msg);
+      }
+
+      final msg = (data is Map) ? data['message']?.toString() : null;
+      throw Exception(msg ?? '거주지 인증 요청 실패 ($status)');
+    }
   }
 }

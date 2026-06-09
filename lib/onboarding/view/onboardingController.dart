@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:project_daon/common/view/new.dart';
 import 'package:project_daon/onboarding/api/onboardingApi.dart';
+import '../model/onboardingData.dart';
+import '../model/onboardingLocation.dart';
 import '../model/onboardingQuestion.dart';
 import 'onboardingType.dart';
-import '../model/onboardingData.dart';
 
 class OnboardingController extends StatefulWidget {
   const OnboardingController({Key? key}) : super(key: key);
@@ -40,10 +41,11 @@ class _OnboardingControllerState extends State<OnboardingController> {
     final int section1LastIndex = OnboardingData.section1Profile.length - 1;
     final int disasterQuestionIndex = OnboardingData.section1Profile.length;
 
-    // Step 1 완료 시점(location 입력 후): register 호출
-    // Step 2부터는 accessToken이 존재하므로 인증된 상태로 진행됨
+    // Step 1 완료 시점(location 입력 후): register 호출 → 성공 시 거주지 인증 호출
+    // register 성공 이후 accessToken이 존재하므로 verifyResidence에 app Dio를 사용합니다.
     if (_currentIndex == section1LastIndex) {
       final onboardingApi = OnboardingApi();
+
       try {
         await onboardingApi.registerUser(_userAnswers);
       } catch (e) {
@@ -52,6 +54,55 @@ class _OnboardingControllerState extends State<OnboardingController> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('회원가입에 실패했습니다. 다시 시도해 주세요.\n${e.toString()}'),
+          ),
+        );
+        return;
+      }
+
+      // register 성공 → accessToken 존재 → 거주지 인증 호출
+      // verify API 호출 시점: register 직후 (section1LastIndex 처리 내부)
+      final locationAnswer = _userAnswers[section1LastIndex];
+      if (locationAnswer is! LocationConfirmResult) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('위치 정보가 올바르지 않습니다. 다시 시도해 주세요.')),
+        );
+        return;
+      }
+
+      final loc = locationAnswer.location;
+      if (loc.latitude == null || loc.longitude == null) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('피해 장소 좌표를 확인할 수 없습니다. 위치를 다시 선택해 주세요.')),
+        );
+        return;
+      }
+
+      try {
+        final verifyResult = await onboardingApi.verifyResidence(
+          disasterLatitude: loc.latitude!,
+          disasterLongitude: loc.longitude!,
+          currentLatitude: locationAnswer.currentLatitude,
+          currentLongitude: locationAnswer.currentLongitude,
+          currentAddress: locationAnswer.currentAddress,
+        );
+
+        if (!verifyResult.verified) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(verifyResult.message)),
+          );
+          return;
+        }
+
+        debugPrint('[거주지 인증] 인증 성공 | distanceKm=${verifyResult.distanceKm}');
+      } catch (e) {
+        debugPrint('[온보딩] 거주지 인증 실패: $e');
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString().replaceFirst('Exception: ', '')),
           ),
         );
         return;

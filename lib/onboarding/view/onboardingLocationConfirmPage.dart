@@ -31,6 +31,7 @@ class _OnboardingLocationConfirmPageState
   OnboardingLocation? _selectedLocation;
 
   bool _isLoading = false;
+  bool _isVerifying = false;
   String? _message;
 
   static const NLatLng _defaultTarget = NLatLng(37.5666102, 126.9783881);
@@ -194,10 +195,10 @@ class _OnboardingLocationConfirmPageState
     final circle = NCircleOverlay(
       id: 'selected_area_circle',
       center: target,
-      radius: 450,
-      color: const Color(0x4462C99C),
+      radius: 10000, // 10km 반경
+      color: const Color(0x1A62C99C), // 투명도 낮춤(10%): 넓은 반경에서 지도가 가려지지 않도록
       outlineColor: const Color(0x9962C99C),
-      outlineWidth: 1,
+      outlineWidth: 2,
     );
 
     final marker = NMarker(
@@ -211,16 +212,63 @@ class _OnboardingLocationConfirmPageState
     await controller.addOverlay(circle);
     await controller.addOverlay(marker);
 
+    // zoom 11: 10km 원이 지도 면적의 약 1/4을 차지하도록 축소
     await controller.updateCamera(
-      NCameraUpdate.scrollAndZoomTo(target: target, zoom: 15.5),
+      NCameraUpdate.scrollAndZoomTo(target: target, zoom: 11),
     );
   }
 
-  void _confirmLocation() {
+  Future<void> _confirmLocation() async {
+    if (_isVerifying) return;
+
     final location = _selectedLocation;
     if (location == null) return;
 
-    Navigator.pop(context, location);
+    if (location.latitude == null || location.longitude == null) {
+      setState(() {
+        _message = '선택한 장소의 좌표를 확인할 수 없어요. 다른 장소를 다시 검색해주세요.';
+      });
+      return;
+    }
+
+    setState(() {
+      _isVerifying = true;
+      _message = null;
+    });
+
+    try {
+      final position = await _determinePosition();
+
+      String currentAddress = '';
+      try {
+        final addressResult = await _kakaoLocalApi.reverseGeocode(
+          latitude: position.latitude,
+          longitude: position.longitude,
+        );
+        currentAddress = addressResult?.displayAddress ?? '';
+      } catch (_) {}
+
+      if (!mounted) return;
+
+      Navigator.pop(
+        context,
+        LocationConfirmResult(
+          location: location,
+          currentLatitude: position.latitude,
+          currentLongitude: position.longitude,
+          currentAddress: currentAddress,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _message = e is DioException
+            ? _getSearchErrorMessage(e)
+            : e.toString().replaceFirst('Exception: ', '');
+      });
+    } finally {
+      if (mounted) setState(() => _isVerifying = false);
+    }
   }
 
   String _getSearchErrorMessage(Object error) {
@@ -408,11 +456,27 @@ class _OnboardingLocationConfirmPageState
                     Row(
                       children: [
                         Expanded(
-                          child: GradientButton(
-                            text: '거주지 인증하기',
-                            onPressed: _selectedLocation == null
-                                ? null
-                                : _confirmLocation,
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              GradientButton(
+                                text: _isVerifying ? '' : '거주지 인증하기',
+                                onPressed:
+                                    _selectedLocation == null || _isVerifying
+                                    ? null
+                                    : _confirmLocation,
+                              ),
+
+                              if (_isVerifying)
+                                const SizedBox(
+                                  width: 24,
+                                  height: 24,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: ColorStyles.white,
+                                  ),
+                                ),
+                            ],
                           ),
                         ),
                       ],

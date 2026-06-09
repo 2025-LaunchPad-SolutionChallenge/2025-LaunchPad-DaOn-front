@@ -91,6 +91,7 @@ class OnboardingType extends StatefulWidget {
 class _OnboardingTypeState extends State<OnboardingType> {
   List<String>? _selectedOption;
   OnboardingLocation? _selectedLocation;
+  LocationConfirmResult? _locationResult;
 
   late TextEditingController _textController;
 
@@ -123,11 +124,12 @@ class _OnboardingTypeState extends State<OnboardingType> {
       return;
     }
 
-    if (widget.onboardingType == 3 && _selectedLocation != null) {
+    if (widget.onboardingType == 3 && _locationResult != null) {
       final currentText = _textController.text.trim();
-      final selectedText = _selectedLocation!.displayAddress.trim();
+      final selectedText = _locationResult!.location.displayAddress.trim();
 
       if (currentText != selectedText) {
+        _locationResult = null;
         _selectedLocation = null;
       }
     }
@@ -200,7 +202,7 @@ class _OnboardingTypeState extends State<OnboardingType> {
     }
 
     if (widget.onboardingType == 3) {
-      return _selectedLocation != null;
+      return _locationResult != null;
     }
 
     // type 2: 텍스트 필드
@@ -214,7 +216,7 @@ class _OnboardingTypeState extends State<OnboardingType> {
   Future<void> _openLocationConfirmPage() async {
     FocusScope.of(context).unfocus();
 
-    final result = await Navigator.push<OnboardingLocation>(
+    final result = await Navigator.push<LocationConfirmResult>(
       context,
       MaterialPageRoute(
         builder: (_) => OnboardingLocationConfirmPage(
@@ -226,14 +228,15 @@ class _OnboardingTypeState extends State<OnboardingType> {
     if (!mounted || result == null) return;
 
     _isProgrammaticTextChange = true;
-    _textController.text = result.displayAddress;
+    _textController.text = result.location.displayAddress;
     _textController.selection = TextSelection.collapsed(
       offset: _textController.text.length,
     );
     _isProgrammaticTextChange = false;
 
     setState(() {
-      _selectedLocation = result;
+      _locationResult = result;
+      _selectedLocation = result.location;
     });
   }
 
@@ -243,7 +246,7 @@ class _OnboardingTypeState extends State<OnboardingType> {
     }
 
     if (widget.onboardingType == 3) {
-      return _selectedLocation;
+      return _locationResult;
     }
 
     final text = _textController.text.trim();
