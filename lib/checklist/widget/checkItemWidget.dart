@@ -2,14 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:project_daon/ui/colorStyles.dart';
 import 'package:project_daon/ui/fontStyles.dart';
+import 'package:characters/characters.dart';
 
 /// 1. 체크리스트 데이터를 관리할 모델 클래스
 class ChecklistItemModel {
   final String id;
-  final bool isAiGenerated; // AI 생성 여부 (제미나이 로고 표시용)
+  final bool isAiGenerated; // AI 생성 여부
   String title;
-  String? memo; // 상세 텍스트 제목
-  List<String> imageUrls; // 파일 경로 또는 URL
+  String? memo;
+  List<String> imageUrls;
   bool isChecked;
 
   ChecklistItemModel({
@@ -25,9 +26,8 @@ class ChecklistItemModel {
 /// 2. 개별 체크리스트 아이템 위젯
 class ChecklistItemWidget extends StatefulWidget {
   final ChecklistItemModel item;
-  final Function(ChecklistItemModel)
-  onOptionsTap; // '...' 버튼 클릭 시 팝업에 데이터를 넘겨주기 위한 콜백
-  final ValueChanged<bool> onCheckChanged; // 체크 상태 변경 콜백
+  final Function(ChecklistItemModel) onOptionsTap;
+  final ValueChanged<bool> onCheckChanged;
 
   const ChecklistItemWidget({
     super.key,
@@ -41,159 +41,207 @@ class ChecklistItemWidget extends StatefulWidget {
 }
 
 class _ChecklistItemWidgetState extends State<ChecklistItemWidget> {
-  bool _isExpanded = false; // 아코디언 펼침 여부
+  bool _isExpanded = false;
+
+  bool get _hasDetail {
+    final hasMemo =
+        widget.item.memo != null && widget.item.memo!.trim().isNotEmpty;
+
+    final hasFiles = widget.item.imageUrls.isNotEmpty;
+
+    return hasMemo || hasFiles;
+  }
+
+  void _toggleExpanded() {
+    if (!_hasDetail) return;
+
+    setState(() {
+      _isExpanded = !_isExpanded;
+    });
+  }
+
+  Color get _titleColor {
+    return widget.item.isChecked
+        ? ColorStyles.black2.withValues(alpha: 0.45)
+        : ColorStyles.black2;
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            // 1. 체크박스 (on/off 불린 값 관리)
-            GestureDetector(
-              onTap: () {
-                widget.onCheckChanged(!widget.item.isChecked);
-              },
-              child: Container(
-                width: 14,
-                height: 14,
-                decoration: BoxDecoration(
-                  color: widget.item.isChecked
-                      ? ColorStyles.main2
-                      : ColorStyles.secon5,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-
-            // 2. 가운데 영역 (로고 + 텍스트) - 누르면 펼쳐짐
-            Expanded(
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () {
-                  setState(() {
-                    _isExpanded = !_isExpanded;
-                  });
-                },
-                child: Row(
-                  children: [
-                    if (widget.item.isAiGenerated) ...[
-                      const Icon(
-                        Icons.auto_awesome,
-                        size: 16,
-                        color: Colors.blueAccent,
-                      ),
-                      const SizedBox(width: 4),
-                    ],
-                    Expanded(
-                      child: Text(
-                        widget.item.title,
-                        style: FontStyles.med14.copyWith(
-                          color: ColorStyles.black2,
-                        ),
-                      ),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 1. 체크박스
+              Padding(
+                padding: const EdgeInsets.only(top: 4.0),
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () {
+                    widget.onCheckChanged(!widget.item.isChecked);
+                  },
+                  child: Container(
+                    width: 14,
+                    height: 14,
+                    decoration: BoxDecoration(
+                      color: widget.item.isChecked
+                          ? ColorStyles.main2
+                          : ColorStyles.secon5,
+                      borderRadius: BorderRadius.circular(2),
                     ),
-                  ],
+                  ),
                 ),
               ),
-            ),
 
-            // 3. 더보기 버튼 (...)
-            IconButton(
-              padding: EdgeInsets.zero,
-              icon: SvgPicture.asset('assets/checklist/dot.svg'),
-              constraints: const BoxConstraints(),
-              onPressed: () {
-                widget.onOptionsTap(widget.item);
-              },
-            ),
-          ],
-        ),
+              const SizedBox(width: 8),
 
-        // 4. 펼쳐졌을 때 보이는 상세 영역 (Text & File)
-        AnimatedSize(
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeInOut,
-          child: _isExpanded
-              ? Padding(
-                  padding: const EdgeInsets.only(
-                    left: 22.0,
-                    // top: 12.0,
-                    bottom: 12.0,
-                  ),
-                  child: Column(
+              // 2. 가운데 영역: AI 아이콘 + 텍스트
+              Expanded(
+                child: GestureDetector(
+                  behavior: _hasDetail
+                      ? HitTestBehavior.opaque
+                      : HitTestBehavior.deferToChild,
+                  onTap: _hasDetail ? _toggleExpanded : null,
+                  child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // 메모 영역
-                      if (widget.item.memo != null &&
-                          widget.item.memo!.isNotEmpty)
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _buildTag('Text'),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                widget.item.memo!,
-                                style: FontStyles.med14.copyWith(
-                                  color: ColorStyles.black2,
-                                ),
-                              ),
-                            ),
-                          ],
+                      if (widget.item.isAiGenerated) ...[
+                        const Padding(
+                          padding: EdgeInsets.only(top: 2.0),
+                          child: Icon(
+                            Icons.auto_awesome,
+                            size: 15,
+                            color: Colors.blueAccent,
+                          ),
                         ),
-                      const SizedBox(height: 12),
+                        const SizedBox(width: 8),
+                      ],
 
-                      // 파일 영역 (최대 3개)
-                      if (widget.item.imageUrls.isNotEmpty)
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _buildTag('File'),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Wrap(
-                                spacing: 8,
-                                runSpacing: 8,
-                                children: widget.item.imageUrls.take(3).map((
-                                  url,
-                                ) {
-                                  return Image.network(
-                                    url,
-                                    width: 95,
-                                    height: 95,
-                                    fit: BoxFit.cover,
-                                    errorBuilder:
-                                        (context, error, stackTrace) =>
-                                            Container(
-                                              width: 95,
-                                              height: 95,
-                                              color: Colors.grey[300],
-                                              child: const Icon(
-                                                Icons.image,
-                                                color: Colors.grey,
-                                              ),
-                                            ),
-                                  );
-                                }).toList(),
-                              ),
-                            ),
-                          ],
+                      Expanded(
+                        child: _WordWrapText(
+                          text: widget.item.title,
+                          style: FontStyles.med14.copyWith(
+                            color: _titleColor,
+                            height: 1.45,
+                          ),
                         ),
+                      ),
                     ],
                   ),
-                )
-              : const SizedBox.shrink(),
+                ),
+              ),
+
+              const SizedBox(width: 16),
+
+              // 3. 더보기 버튼 (...)
+              SizedBox(
+                width: 28,
+                height: 28,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () {
+                    widget.onOptionsTap(widget.item);
+                  },
+                  child: const Center(child: _SmallMoreIcon()),
+                ),
+              ),
+            ],
+          ),
+
+          // 4. 펼쳐졌을 때 보이는 상세 영역
+          AnimatedSize(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeInOut,
+            child: _isExpanded && _hasDetail
+                ? Padding(
+                    padding: const EdgeInsets.only(
+                      left: 22.0,
+                      top: 10.0,
+                      bottom: 4.0,
+                      right: 34.0,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (widget.item.memo != null &&
+                            widget.item.memo!.trim().isNotEmpty)
+                          _buildMemoArea(),
+
+                        if (widget.item.memo != null &&
+                            widget.item.memo!.trim().isNotEmpty &&
+                            widget.item.imageUrls.isNotEmpty)
+                          const SizedBox(height: 12),
+
+                        if (widget.item.imageUrls.isNotEmpty) _buildFileArea(),
+                      ],
+                    ),
+                  )
+                : const SizedBox.shrink(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMemoArea() {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildTag('Text'),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            widget.item.memo!,
+            softWrap: true,
+            style: FontStyles.med14.copyWith(
+              color: ColorStyles.black2,
+              height: 1.45,
+            ),
+          ),
         ),
-        // const SizedBox(height: 16), // 아이템 간 간격
       ],
     );
   }
 
-  // Text, File 태그 위젯 생성 헬퍼 메서드
+  Widget _buildFileArea() {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildTag('File'),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: widget.item.imageUrls.take(3).map((url) {
+              return ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.network(
+                  url,
+                  width: 88,
+                  height: 88,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      width: 88,
+                      height: 88,
+                      color: Colors.grey[300],
+                      child: const Icon(Icons.image, color: Colors.grey),
+                    );
+                  },
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildTag(String text) {
     return Container(
       width: 40,
@@ -205,8 +253,50 @@ class _ChecklistItemWidgetState extends State<ChecklistItemWidget> {
       ),
       child: Text(
         text,
-        style: FontStyles.med12.copyWith(color: ColorStyles.white),
+        style: FontStyles.med12.copyWith(color: ColorStyles.white, height: 1.2),
       ),
+    );
+  }
+}
+
+class _WordWrapText extends StatelessWidget {
+  final String text;
+  final TextStyle style;
+
+  const _WordWrapText({required this.text, required this.style});
+
+  @override
+  Widget build(BuildContext context) {
+    final words = text.trim().split(RegExp(r'\s+'));
+
+    return Wrap(
+      spacing: 3,
+      runSpacing: 2,
+      children: words.map((word) {
+        return Text(word, style: style);
+      }).toList(),
+    );
+  }
+}
+
+class _SmallMoreIcon extends StatelessWidget {
+  const _SmallMoreIcon();
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: List.generate(3, (index) {
+        return Container(
+          margin: EdgeInsets.only(right: index == 2 ? 0 : 3),
+          width: 3,
+          height: 3,
+          decoration: BoxDecoration(
+            color: ColorStyles.black2.withOpacity(0.55),
+            shape: BoxShape.circle,
+          ),
+        );
+      }),
     );
   }
 }

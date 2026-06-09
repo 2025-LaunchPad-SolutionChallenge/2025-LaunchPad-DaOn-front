@@ -238,27 +238,45 @@ class HomePageState extends State<HomePage> {
         onTap: () => _toggleTask(item),
         behavior: HitTestBehavior.opaque,
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              width: 14,
-              height: 14,
-              decoration: BoxDecoration(
-                color: item.isCompleted
-                    ? ColorStyles.main2
-                    : ColorStyles.secon5,
-                borderRadius: BorderRadius.circular(2),
+            Padding(
+              padding: const EdgeInsets.only(top: 4.0),
+              child: Container(
+                width: 14,
+                height: 14,
+                decoration: BoxDecoration(
+                  color: item.isCompleted
+                      ? ColorStyles.main2
+                      : ColorStyles.secon5,
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
             ),
+
             const SizedBox(width: 8),
+
             if (item.isAiGenerated) ...[
-              const Icon(Icons.auto_awesome, size: 16, color: Colors.blueAccent),
-              const SizedBox(width: 4),
+              const Padding(
+                padding: EdgeInsets.only(top: 2.0),
+                child: Icon(
+                  Icons.auto_awesome,
+                  size: 15,
+                  color: Colors.blueAccent,
+                ),
+              ),
+              const SizedBox(width: 5),
             ],
+
             Expanded(
-              child: Text(
-                item.title,
-                style: FontStyles.med14.copyWith(color: ColorStyles.black2),
+              child: _WordWrapText(
+                text: item.title,
+                style: FontStyles.med14.copyWith(
+                  color: item.isCompleted
+                      ? ColorStyles.black2.withValues(alpha: 0.45)
+                      : ColorStyles.black2,
+                  height: 1.45,
+                ),
               ),
             ),
           ],
@@ -269,9 +287,13 @@ class HomePageState extends State<HomePage> {
 
   Future<void> refreshTodayTasksFromOutside() async {
     final tasksFuture = _safeGet<TodayTasksResponse>(
-      _homeApi.getTodayTasks(), '[홈] 탭 복귀 할 일 재조회 실패');
+      _homeApi.getTodayTasks(),
+      '[홈] 탭 복귀 할 일 재조회 실패',
+    );
     final summaryFuture = _safeGet<HomeSummary>(
-      _homeApi.getHomeSummary(), '[홈] 탭 복귀 요약 재조회 실패');
+      _homeApi.getHomeSummary(),
+      '[홈] 탭 복귀 요약 재조회 실패',
+    );
 
     final tasks = await tasksFuture;
     final summary = await summaryFuture;
@@ -284,7 +306,9 @@ class HomePageState extends State<HomePage> {
 
     if (_fullTasksFetched) {
       final full = await _safeGet<TodayTasksResponse>(
-        _homeApi.getTodayTasksFull(), '[홈] 탭 복귀 전체 할 일 재조회 실패');
+        _homeApi.getTodayTasksFull(),
+        '[홈] 탭 복귀 전체 할 일 재조회 실패',
+      );
       if (!mounted || full == null) return;
       setState(() => _fullTasks = full.items);
     }
@@ -536,6 +560,26 @@ class HomePageState extends State<HomePage> {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _WordWrapText extends StatelessWidget {
+  final String text;
+  final TextStyle style;
+
+  const _WordWrapText({required this.text, required this.style});
+
+  @override
+  Widget build(BuildContext context) {
+    final words = text.trim().split(RegExp(r'\s+'));
+
+    return Wrap(
+      spacing: 3,
+      runSpacing: 2,
+      children: words.map((word) {
+        return Text(word, style: style);
+      }).toList(),
     );
   }
 }
