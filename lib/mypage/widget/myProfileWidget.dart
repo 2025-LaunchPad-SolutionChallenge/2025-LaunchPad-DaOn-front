@@ -31,6 +31,7 @@ class MyProfileWidget extends StatelessWidget {
             '${name} / Lv. ${level.toString()} / ${disaster}',
             style: FontStyles.semi20.copyWith(color: ColorStyles.white),
           ),
+          SizedBox(height: 20.0),
         ],
       ),
     );
