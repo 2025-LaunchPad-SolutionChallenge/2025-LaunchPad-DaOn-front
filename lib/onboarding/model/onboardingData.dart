@@ -11,7 +11,7 @@ class OnboardingData {
       seconText: '기본 정보 입력',
       question: '본인의 이름을\n입력해주세요.',
       hintText: '이름을 입력해주세요.',
-      num: 6,           // 최대 6자
+      num: 6, // 최대 6자
       inputFormat: 'name',
     ),
     OnboardingQuestion(
@@ -28,7 +28,7 @@ class OnboardingData {
       seconText: '기본 정보 입력',
       question: '사용할 닉네임을\n입력해주세요.',
       hintText: '닉네임을 설정해주세요.',
-      num: 10,          // 최대 10자
+      num: 10, // 최대 10자
       inputFormat: 'nickname',
     ),
     OnboardingQuestion(
@@ -268,7 +268,7 @@ class OnboardingData {
       section: 3,
       type: 1,
       isMultipleSelection: true,
-      question: '오늘 하루, 어떤 행동을\n했나요? (복수 선택)',
+      question: '오늘 하루, 어떤 행동을\n했나요?',
       options: [
         '아무 것도 못 했어요',
         '쉬는 시간을 가졌어요',
