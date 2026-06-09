@@ -7,27 +7,57 @@ class Dropdown extends StatefulWidget {
   final List<String>? daonItemList;
   final List<String>? dateItemList;
   final String? color;
-  const Dropdown({super.key, this.daonItemList, this.dateItemList, this.color});
+  final List<String>? items;
+  final int? initialIndex;
+  final ValueChanged<int>? onIndexChanged;
+
+  const Dropdown({
+    super.key,
+    this.daonItemList,
+    this.dateItemList,
+    this.color,
+    this.items,
+    this.initialIndex,
+    this.onIndexChanged,
+  });
 
   @override
   State<Dropdown> createState() => _DropdownState();
 }
 
 class _DropdownState extends State<Dropdown> {
-  // 드롭다운에 표시될 모의 데이터 목록
-  final List<String> _dropdownItems = [
+  final List<String> _defaultItems = [
     '홍수 피해  |  2025 - 02 - 24',
     '태풍 피해  |  2025 - 08 - 12',
     '지진 피해  |  2025 - 11 - 05',
   ];
 
-  // 현재 선택된 아이템
+  List<String> _resolvedItems = [];
   String? _selectedValue;
 
   @override
   void initState() {
     super.initState();
-    _selectedValue = _dropdownItems[0];
+    _resolvedItems = widget.items ?? _defaultItems;
+    _selectedValue = _resolvedItems.isNotEmpty
+        ? _resolvedItems[(widget.initialIndex ?? 0).clamp(0, _resolvedItems.length - 1)]
+        : null;
+  }
+
+  @override
+  void didUpdateWidget(Dropdown oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.items != oldWidget.items || widget.initialIndex != oldWidget.initialIndex) {
+      setState(() {
+        _resolvedItems = widget.items ?? _defaultItems;
+        if (_resolvedItems.isEmpty) {
+          _selectedValue = null;
+        } else if (_selectedValue == null || !_resolvedItems.contains(_selectedValue)) {
+          final idx = (widget.initialIndex ?? 0).clamp(0, _resolvedItems.length - 1);
+          _selectedValue = _resolvedItems[idx];
+        }
+      });
+    }
   }
 
   Color getColor() {
@@ -66,7 +96,7 @@ class _DropdownState extends State<Dropdown> {
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
-          value: _selectedValue,
+          value: _resolvedItems.contains(_selectedValue) ? _selectedValue : null,
           style: FontStyles.med14.copyWith(color: getColor()),
           icon: Row(
             children: [
@@ -81,11 +111,12 @@ class _DropdownState extends State<Dropdown> {
           isDense: true,
           dropdownColor: ColorStyles.main1,
           onChanged: (String? newValue) {
-            setState(() {
-              _selectedValue = newValue!;
-            });
+            if (newValue == null) return;
+            setState(() => _selectedValue = newValue);
+            final idx = _resolvedItems.indexOf(newValue);
+            if (idx != -1) widget.onIndexChanged?.call(idx);
           },
-          items: _dropdownItems.map<DropdownMenuItem<String>>((String value) {
+          items: _resolvedItems.map<DropdownMenuItem<String>>((String value) {
             return DropdownMenuItem<String>(value: value, child: Text(value));
           }).toList(),
         ),
