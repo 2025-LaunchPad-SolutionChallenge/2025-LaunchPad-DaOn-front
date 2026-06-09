@@ -2,7 +2,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:project_daon/checklist/widget/checkProgress.dart';
+import 'package:project_daon/mypage/api/mypageApi.dart';
 import 'package:project_daon/mypage/widget/myPageAppBarWidget.dart';
 import 'package:project_daon/mypage/widget/myProfileWidget.dart';
 import 'package:project_daon/mypage/widget/recoverydashboardWidget.dart';
@@ -21,9 +23,148 @@ class _MyPageState extends State<MyPage> {
   int level = 2;
   String disaster = '홍수';
 
+  final MypageApi _mypageApi = MypageApi();
+
+  bool _isLogoutLoading = false;
+  bool _isWithdrawLoading = false;
   bool _isLoadingTokens = false;
 
   static const FlutterSecureStorage _storage = FlutterSecureStorage();
+
+  Future<void> _handleLogout() async {
+    if (_isLogoutLoading || _isWithdrawLoading) return;
+
+    final confirmed = await _showConfirmDialog(
+      title: '로그아웃',
+      content: '정말 로그아웃하시겠습니까?',
+      confirmText: '로그아웃',
+    );
+
+    if (!confirmed) return;
+
+    setState(() {
+      _isLogoutLoading = true;
+    });
+
+    try {
+      await _mypageApi.logoutUser();
+      await _clearLocalAuthData();
+
+      if (!mounted) return;
+
+      Navigator.of(context).pushNamedAndRemoveUntil('/login', (_) => false);
+    } catch (e) {
+      if (!mounted) return;
+      _showSnackBar(_cleanErrorMessage(e));
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLogoutLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _handleWithdraw() async {
+    if (_isLogoutLoading || _isWithdrawLoading) return;
+
+    final confirmed = await _showConfirmDialog(
+      title: '회원 탈퇴',
+      content: '정말 회원 탈퇴하시겠습니까?\n탈퇴 후 계정 정보는 복구할 수 없습니다.',
+      confirmText: '탈퇴하기',
+      isDanger: true,
+    );
+
+    if (!confirmed) return;
+
+    setState(() {
+      _isWithdrawLoading = true;
+    });
+
+    try {
+      await _mypageApi.withdrawUser();
+      await _clearLocalAuthData();
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('회원 탈퇴가 완료되었습니다.')));
+
+      Navigator.of(context).pushNamedAndRemoveUntil('/login', (_) => false);
+    } catch (e) {
+      if (!mounted) return;
+      _showSnackBar(_cleanErrorMessage(e));
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isWithdrawLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _clearLocalAuthData() async {
+    await _storage.deleteAll();
+
+    try {
+      await FirebaseAuth.instance.signOut();
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('[Firebase 로그아웃 실패] $e');
+      }
+    }
+  }
+
+  Future<bool> _showConfirmDialog({
+    required String title,
+    required String content,
+    required String confirmText,
+    bool isDanger = false,
+  }) async {
+    final result = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: Text(title),
+          content: Text(content),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop(false);
+              },
+              child: const Text('취소'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop(true);
+              },
+              child: Text(
+                confirmText,
+                style: TextStyle(
+                  color: isDanger ? Colors.red : ColorStyles.main2,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    return result ?? false;
+  }
+
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  String _cleanErrorMessage(Object error) {
+    return error.toString().replaceFirst('Exception: ', '');
+  }
 
   Future<void> _printWithdrawTestTokens() async {
     if (_isLoadingTokens) return;
@@ -48,11 +189,8 @@ class _MyPageState extends State<MyPage> {
       }
 
       if (kDebugMode) {
-        // ignore: avoid_print
         print('[WITHDRAW TEST] accessToken=$accessToken');
-        // ignore: avoid_print
         print('[WITHDRAW TEST] refreshToken=$refreshToken');
-        // ignore: avoid_print
         print('[WITHDRAW TEST] firebaseToken=$firebaseToken');
       }
 
@@ -64,9 +202,9 @@ class _MyPageState extends State<MyPage> {
     } catch (e) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(_cleanErrorMessage(e))));
     } finally {
       if (mounted) {
         setState(() {
@@ -74,6 +212,40 @@ class _MyPageState extends State<MyPage> {
         });
       }
     }
+  }
+
+  Widget _buildMenuButton({
+    required String text,
+    required VoidCallback? onPressed,
+    bool isLoading = false,
+    bool isDanger = false,
+  }) {
+    return TextButton(
+      onPressed: isLoading ? null : onPressed,
+      style: TextButton.styleFrom(alignment: Alignment.centerLeft),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            text,
+            style: FontStyles.med16.copyWith(
+              color: isDanger ? Colors.red : ColorStyles.black2,
+            ),
+          ),
+          if (isLoading) ...[
+            const SizedBox(width: 10),
+            const SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: ColorStyles.main2,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
   }
 
   @override
@@ -119,7 +291,6 @@ class _MyPageState extends State<MyPage> {
                       ),
                     ),
                   ),
-                  // 수정된 부분: SingleChildScrollView를 추가하여 스크롤 활성화
                   child: SingleChildScrollView(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -127,47 +298,22 @@ class _MyPageState extends State<MyPage> {
                         const RecoveryDashboardWidget(),
                         const SizedBox(height: 20),
 
-                        TextButton(
-                          onPressed: () {},
-                          style: TextButton.styleFrom(
-                            alignment: Alignment.centerLeft,
-                          ),
-                          child: Text(
-                            '내 식물 확인하기',
-                            style: FontStyles.med16.copyWith(
-                              color: ColorStyles.black2,
-                            ),
-                          ),
+                        _buildMenuButton(text: '내 식물 확인하기', onPressed: () {}),
+
+                        _buildMenuButton(
+                          text: '로그아웃',
+                          onPressed: _handleLogout,
+                          isLoading: _isLogoutLoading,
                         ),
 
-                        TextButton(
-                          onPressed: () {},
-                          style: TextButton.styleFrom(
-                            alignment: Alignment.centerLeft,
-                          ),
-                          child: Text(
-                            '로그아웃',
-                            style: FontStyles.med16.copyWith(
-                              color: ColorStyles.black2,
-                            ),
-                          ),
-                        ),
-
-                        TextButton(
-                          onPressed: () {},
-                          style: TextButton.styleFrom(
-                            alignment: Alignment.centerLeft,
-                          ),
-                          child: Text(
-                            '회원 탈퇴',
-                            style: FontStyles.med16.copyWith(
-                              color: ColorStyles.black2,
-                            ),
-                          ),
+                        _buildMenuButton(
+                          text: '회원 탈퇴',
+                          onPressed: _handleWithdraw,
+                          isLoading: _isWithdrawLoading,
+                          isDanger: true,
                         ),
 
                         if (kDebugMode) ...[
-                          // 스크롤 뷰 안에서는 Spacer()를 사용할 수 없으므로 SizedBox로 여백 제공
                           const SizedBox(height: 40),
                           SizedBox(
                             width: double.infinity,
