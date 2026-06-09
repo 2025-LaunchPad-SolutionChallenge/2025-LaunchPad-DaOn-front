@@ -1,21 +1,13 @@
-import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:project_daon/core/service/auth_service.dart';
 import 'package:project_daon/ui/colorStyles.dart';
 import 'package:project_daon/ui/fontStyles.dart';
-
-class AuthApiException implements Exception {
-  final int statusCode;
-  final String message;
-
-  const AuthApiException({required this.statusCode, required this.message});
-
-  @override
-  String toString() => message;
-}
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -27,48 +19,83 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   bool _isLoading = false;
 
-  /// Android Emulator에서 FastAPI 로컬 서버를 테스트할 때는 10.0.2.2 사용
-  ///
-  /// 실행 예시:
-  /// flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8000
-  ///
-  /// 실제 기기 테스트 시:
-  /// flutter run --dart-define=API_BASE_URL=http://내_PC_IP:8000
+  final AuthService _authService = AuthService();
 
-  static const String _baseUrl = String.fromEnvironment(
-    'API_BASE_URL',
-    defaultValue: 'http://10.0.2.2:8000',
+  static const String _expectedFirebaseProjectId = String.fromEnvironment(
+    'FIREBASE_PROJECT_ID',
+    defaultValue: 'daon-launchpad',
   );
 
-  late final Dio _dio = Dio(
-    BaseOptions(
-      baseUrl: _baseUrl,
-      connectTimeout: const Duration(seconds: 10),
-      receiveTimeout: const Duration(seconds: 10),
-      headers: {'Content-Type': 'application/json'},
-      validateStatus: (status) {
-        return status != null && status < 500;
-      },
-    ),
-  );
+  void _debugFirebaseTokenClaims(String token) {
+    if (!kDebugMode) return;
 
-  final FlutterSecureStorage _storage = const FlutterSecureStorage();
+    try {
+      final parts = token.split('.');
 
-  /// 1. Google 로그인 → Firebase 로그인 → Firebase ID Token 발급
-  Future<String> _signInWithGoogleAndGetFirebaseIdToken() async {
-    final GoogleSignInAccount googleUser = await GoogleSignIn.instance
-        .authenticate();
+      debugPrint('[토큰 검사] length=${token.length}');
+      debugPrint('[토큰 검사] dotCount=${'.'.allMatches(token).length}');
+      debugPrint('[토큰 검사] startsWith=${token.length >= 10 ? token.substring(0, 10) : token}');
 
+      if (parts.length != 3) {
+        debugPrint('[토큰 검사] JWT 형식 아님');
+        return;
+      }
+
+      final payloadJson = utf8.decode(
+        base64Url.decode(base64Url.normalize(parts[1])),
+      );
+      final payload = jsonDecode(payloadJson) as Map<String, dynamic>;
+      final now = DateTime.now().toUtc().millisecondsSinceEpoch ~/ 1000;
+
+      final iss = payload['iss']?.toString();
+      final aud = payload['aud']?.toString();
+      final exp = payload['exp'];
+      final iat = payload['iat'];
+
+      debugPrint('[토큰 검사] iss=$iss');
+      debugPrint('[토큰 검사] aud=$aud');
+      debugPrint('[토큰 검사] iat=$iat');
+      debugPrint('[토큰 검사] exp=$exp');
+      debugPrint('[토큰 검사] now=$now');
+
+      if (exp is int) {
+        debugPrint('[토큰 검사] remaining=${exp - now}');
+      }
+
+      if (aud != _expectedFirebaseProjectId ||
+          iss != 'https://securetoken.google.com/$_expectedFirebaseProjectId') {
+        debugPrint(
+          '[토큰 검사] 경고: 프론트 Firebase project가 기대값과 다릅니다. '
+          'expected=$_expectedFirebaseProjectId, aud=$aud, iss=$iss',
+        );
+      }
+    } catch (e) {
+      debugPrint('[토큰 검사] payload 디코딩 실패: $e');
+    }
+  }
+
+  /// Google → Firebase 인증 후 Firebase ID Token 반환
+  Future<String> _getFreshFirebaseToken() async {
+    final GoogleSignInAccount googleUser = await GoogleSignIn.instance.authenticate();
     final GoogleSignInAuthentication googleAuth = googleUser.authentication;
 
     final OAuthCredential credential = GoogleAuthProvider.credential(
       idToken: googleAuth.idToken,
     );
 
-    final UserCredential userCredential = await FirebaseAuth.instance
-        .signInWithCredential(credential);
+    final UserCredential userCredential = await FirebaseAuth.instance.signInWithCredential(
+      credential,
+    );
 
-    final String? idToken = await userCredential.user?.getIdToken(true);
+    final User? user = userCredential.user;
+    if (user == null) {
+      throw Exception('Firebase 사용자 정보를 가져오지 못했습니다.');
+    }
+
+    // 서버에 보낼 토큰은 Google ID Token이 아니라 Firebase ID Token이어야 합니다.
+    await user.reload();
+    final User? refreshedUser = FirebaseAuth.instance.currentUser;
+    final String? idToken = await refreshedUser?.getIdToken(true);
 
     if (idToken == null || idToken.isEmpty) {
       throw Exception('Firebase ID Token을 가져오지 못했습니다.');
@@ -77,168 +104,70 @@ class _LoginPageState extends State<LoginPage> {
     return idToken;
   }
 
-  /// 2. FastAPI /auth/firebase로 Firebase ID Token 전송
-  Future<BackendLoginResult> _loginToBackend(String idToken) async {
-    final Response response = await _dio.post(
-      '/api/v1/auth/login',
-      data: {'firebaseToken': idToken},
-    );
-    return _parseAndPersistLoginResponse(
-      response,
-      fallbackErrorPrefix: '로그인 실패',
-    );
-  }
-
-  Future<BackendLoginResult> _registerToBackend(String idToken) async {
-    final Response response = await _dio.post(
-      '/api/v1/auth/register',
-      data: {'firebaseToken': idToken},
-    );
-    return _parseAndPersistLoginResponse(
-      response,
-      fallbackErrorPrefix: '회원가입 실패',
-    );
-  }
-
-  Future<BackendLoginResult> _parseAndPersistLoginResponse(
-    Response response, {
-    required String fallbackErrorPrefix,
-  }) async {
-    final int statusCode = response.statusCode ?? 0;
-
-    if (statusCode < 200 || statusCode >= 300) {
-      throw AuthApiException(
-        statusCode: statusCode,
-        message: _extractServerErrorMessage(
-          response,
-          fallbackErrorPrefix: fallbackErrorPrefix,
-        ),
-      );
-    }
-
-    final Map<String, dynamic> data = _convertToMap(response.data);
-    final BackendLoginResult result = BackendLoginResult.fromJson(data);
-
-    await _storage.write(key: 'access_token', value: result.accessToken);
-    await _storage.write(key: 'refresh_token', value: result.refreshToken);
-    await _storage.write(key: 'token_type', value: result.tokenType);
-
-    if (kDebugMode) {
-      print('[AUTH] accessToken=${result.accessToken}');
-      print('[AUTH] refreshToken=${result.refreshToken}');
-    }
-
-    return result;
-  }
-
-  /// 3. 로그인 버튼 클릭 시 실행되는 전체 흐름
   Future<void> _handleGoogleLogin() async {
     if (_isLoading) return;
 
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     try {
-      final String firebaseIdToken =
-          await _signInWithGoogleAndGetFirebaseIdToken();
+      // 새 로그인 시 이전 온보딩 임시 토큰이 흐름을 방해하지 않도록 정리합니다.
+      await _authService.clearPendingFirebaseToken();
 
-      if (kDebugMode) {
-        print('[AUTH] firebaseToken=$firebaseIdToken');
-      }
+      final String firebaseToken = await _getFreshFirebaseToken();
+      _debugFirebaseTokenClaims(firebaseToken);
 
-      try {
-        await _loginToBackend(firebaseIdToken);
+      final LoginResult result = await _authService.loginWithFirebaseToken(
+        firebaseToken,
+      );
 
-        if (!mounted) return;
-        Navigator.pushReplacementNamed(context, '/home');
-      } on AuthApiException catch (e) {
-        if (e.statusCode == 404) {
-          await _registerToBackend(firebaseIdToken);
+      if (!mounted) return;
 
-          if (!mounted) return;
+      switch (result) {
+        case LoginResult.success:
+          Navigator.pushReplacementNamed(context, '/home');
+          break;
+        case LoginResult.newUser:
           Navigator.pushReplacementNamed(context, '/onboarding');
-          return;
-        }
-
-        if (e.statusCode == 401) {
-          throw Exception('Firebase 토큰 인증에 실패했습니다. 서버 메시지: ${e.message}');
-        }
-
-        throw Exception(e.message);
+          break;
       }
+    } on AuthException catch (e) {
+      _showError(e.message);
     } on DioException catch (e) {
-      _showErrorSnackBar(_extractDioErrorMessage(e));
+      _showError(_dioErrorMessage(e));
     } on FirebaseAuthException catch (e) {
-      _showErrorSnackBar(e.message ?? 'Firebase 로그인 중 오류가 발생했습니다.');
+      _showError(e.message ?? 'Firebase 로그인 중 오류가 발생했습니다.');
     } catch (e) {
-      _showErrorSnackBar(e.toString().replaceFirst('Exception: ', ''));
+      _showError(e.toString().replaceFirst('Exception: ', ''));
     } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  Map<String, dynamic> _convertToMap(dynamic data) {
-    if (data is Map<String, dynamic>) {
-      return data;
-    }
+  String _dioErrorMessage(DioException e) {
+    final status = e.response?.statusCode;
+    final data = e.response?.data;
 
     if (data is Map) {
-      return Map<String, dynamic>.from(data);
+      final message = data['message'] ?? data['detail'];
+      if (message != null) {
+        return '로그인 실패${status != null ? ' ($status)' : ''}: $message';
+      }
     }
 
-    throw Exception('서버 응답 형식이 올바르지 않습니다.');
+    return '네트워크 오류가 발생했습니다. 연결을 확인해 주세요. (${e.type.name})';
   }
 
-  String _extractServerErrorMessage(
-    Response response, {
-    String fallbackErrorPrefix = '로그인 실패',
-  }) {
-    final dynamic data = response.data;
-
-    if (data is Map && data['detail'] != null) {
-      return '$fallbackErrorPrefix (${response.statusCode}): ${data['detail']}';
-    }
-
-    if (data is Map && data['message'] != null) {
-      return '$fallbackErrorPrefix (${response.statusCode}): ${data['message']}';
-    }
-
-    return '$fallbackErrorPrefix (${response.statusCode}): 서버에서 토큰을 받아오지 못했습니다.';
-  }
-
-  String _extractDioErrorMessage(DioException e) {
-    final int? statusCode = e.response?.statusCode;
-    final dynamic data = e.response?.data;
-
-    if (data is Map && data['detail'] != null) {
-      return '로그인 실패${statusCode != null ? ' ($statusCode)' : ''}: ${data['detail']}';
-    }
-
-    if (data is Map && data['message'] != null) {
-      return '로그인 실패${statusCode != null ? ' ($statusCode)' : ''}: ${data['message']}';
-    }
-
-    return '로그인 실패${statusCode != null ? ' ($statusCode)' : ''}: ${e.message ?? '네트워크 오류가 발생했습니다.'}';
-  }
-
-  void _showErrorSnackBar(String message) {
+  void _showError(String message) {
     if (!mounted) return;
-
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       extendBodyBehindAppBar: true,
-      // appBar: HomeAppBarWidget(),
       body: Container(
         width: double.infinity,
         height: double.infinity,
@@ -302,43 +231,6 @@ class _LoginPageState extends State<LoginPage> {
           ),
         ),
       ),
-    );
-  }
-}
-
-class BackendLoginResult {
-  final String accessToken;
-  final String refreshToken;
-  final String tokenType;
-  final bool isNewUser;
-
-  const BackendLoginResult({
-    required this.accessToken,
-    required this.refreshToken,
-    required this.tokenType,
-    required this.isNewUser,
-  });
-
-  factory BackendLoginResult.fromJson(Map<String, dynamic> json) {
-    final String? accessToken =
-        (json['accessToken'] ?? json['access_token']) as String?;
-    final String? refreshToken =
-        (json['refreshToken'] ?? json['refresh_token']) as String?;
-
-    if (accessToken == null || accessToken.isEmpty) {
-      throw Exception('서버 응답에 access_token이 없습니다.');
-    }
-
-    if (refreshToken == null || refreshToken.isEmpty) {
-      throw Exception('서버 응답에 refresh_token이 없습니다.');
-    }
-
-    return BackendLoginResult(
-      accessToken: accessToken,
-      refreshToken: refreshToken,
-      tokenType:
-          (json['tokenType'] ?? json['token_type']) as String? ?? 'bearer',
-      isNewUser: (json['isNewUser'] ?? json['is_new_user']) as bool? ?? false,
     );
   }
 }

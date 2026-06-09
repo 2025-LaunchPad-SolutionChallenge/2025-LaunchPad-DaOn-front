@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:project_daon/common/widget/buttonGroupManager.dart';
 import 'package:project_daon/common/widget/greenBackButton.dart';
 import 'package:project_daon/common/widget/lineTextField.dart';
@@ -12,6 +13,42 @@ import '../../common/widget/gradientButton.dart';
 import '../../common/widget/greenButton.dart';
 import '../../common/widget/progressBar.dart';
 
+/// 생년월일 자동 점(.) 삽입 포맷터: 숫자만 허용, YYYY.MM.DD 형식으로 자동 포맷
+class _BirthDateInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final digits = newValue.text.replaceAll(RegExp(r'[^0-9]'), '');
+    if (digits.length > 8) return oldValue;
+
+    final buffer = StringBuffer();
+    for (int i = 0; i < digits.length; i++) {
+      if (i == 4 || i == 6) buffer.write('.');
+      buffer.write(digits[i]);
+    }
+
+    final formatted = buffer.toString();
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
+    );
+  }
+}
+
+/// 개행 문자 입력 차단 (단일 행 필드 보호용)
+class _NoNewlineFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    if (newValue.text.contains('\n')) return oldValue;
+    return newValue;
+  }
+}
+
 class OnboardingType extends StatefulWidget {
   final int? onboardingType;
   final String? question;
@@ -24,6 +61,8 @@ class OnboardingType extends StatefulWidget {
   final int? totalPage;
   final bool? isMultipleSelection;
   final dynamic initialValue;
+  // type 2 텍스트 필드의 입력 형식: 'name' | 'birthDate' | 'nickname'
+  final String? inputFormat;
   final VoidCallback? onPrevious;
   final Function(dynamic result) onNext;
 
@@ -40,6 +79,7 @@ class OnboardingType extends StatefulWidget {
     this.totalPage = 1,
     this.isMultipleSelection,
     this.initialValue,
+    this.inputFormat,
     required this.onPrevious,
     required this.onNext,
   });
@@ -101,6 +141,59 @@ class _OnboardingTypeState extends State<OnboardingType> {
     super.dispose();
   }
 
+  /// 생년월일 문자열(YYYY.MM.DD)이 실제 존재하는 날짜인지 검증
+  bool _isValidBirthDate(String displayDate) {
+    if (displayDate.length != 10) return false;
+    final parts = displayDate.split('.');
+    if (parts.length != 3) return false;
+    final year = int.tryParse(parts[0]);
+    final month = int.tryParse(parts[1]);
+    final day = int.tryParse(parts[2]);
+    if (year == null || month == null || day == null) return false;
+    if (month < 1 || month > 12 || day < 1) return false;
+    final daysInMonth = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    if (year % 4 == 0 && (year % 100 != 0 || year % 400 == 0)) {
+      daysInMonth[2] = 29;
+    }
+    return day <= daysInMonth[month];
+  }
+
+  /// inputFormat에 맞는 TextFieldWidget 반환 (type 2 전용)
+  /// maxLines: 1로 개행을 막되, contentPadding을 늘려 3줄 높이처럼 보이게 함
+  Widget _buildTextFieldForType2() {
+    const tallPadding = EdgeInsets.only(
+      top: 12.0,
+      bottom: 60.0,
+      right: 12.0,
+      left: 12.0,
+    );
+
+    if (widget.inputFormat == 'birthDate') {
+      return TextFieldWidget(
+        hintText: widget.hintText ?? '',
+        controller: _textController,
+        inputFormatters: [_BirthDateInputFormatter()],
+        keyboardType: TextInputType.number,
+        maxLines: 1,
+        minLines: 1,
+        contentPadding: tallPadding,
+      );
+    }
+    // name / nickname: 단일 행, 최대 길이 제한, 개행 차단
+    return TextFieldWidget(
+      hintText: widget.hintText ?? '',
+      controller: _textController,
+      inputFormatters: [
+        _NoNewlineFormatter(),
+        if (widget.num != null) LengthLimitingTextInputFormatter(widget.num),
+      ],
+      keyboardType: TextInputType.text,
+      maxLines: 1,
+      minLines: 1,
+      contentPadding: tallPadding,
+    );
+  }
+
   bool get _isNextEnabled {
     if (widget.onboardingType == 1 || widget.onboardingType == 4) {
       return _selectedOption != null && _selectedOption!.isNotEmpty;
@@ -110,7 +203,12 @@ class _OnboardingTypeState extends State<OnboardingType> {
       return _selectedLocation != null;
     }
 
-    return _textController.text.trim().isNotEmpty;
+    // type 2: 텍스트 필드
+    final text = _textController.text.trim();
+    if (widget.inputFormat == 'birthDate') {
+      return text.length == 10 && _isValidBirthDate(text);
+    }
+    return text.isNotEmpty;
   }
 
   Future<void> _openLocationConfirmPage() async {
@@ -148,7 +246,12 @@ class _OnboardingTypeState extends State<OnboardingType> {
       return _selectedLocation;
     }
 
-    return _textController.text.trim();
+    final text = _textController.text.trim();
+    // birthDate: 화면 표시 YYYY.MM.DD → API 전송 YYYY-MM-DD
+    if (widget.inputFormat == 'birthDate') {
+      return text.replaceAll('.', '-');
+    }
+    return text;
   }
 
   @override
@@ -197,10 +300,7 @@ class _OnboardingTypeState extends State<OnboardingType> {
                       ),
                     ] else if (widget.onboardingType == 2) ...[
                       const SizedBox(height: 120.0),
-                      TextFieldWidget(
-                        hintText: widget.hintText!,
-                        controller: _textController,
-                      ),
+                      _buildTextFieldForType2(),
                     ] else if (widget.onboardingType == 3) ...[
                       const SizedBox(height: 120.0),
                       Row(
