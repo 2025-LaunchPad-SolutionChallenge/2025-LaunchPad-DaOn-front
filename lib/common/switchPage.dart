@@ -18,15 +18,24 @@ class SwitchPage extends StatefulWidget {
 
 class _SwitchPageState extends State<SwitchPage> {
   int _currentIndex = 0;
+  final GlobalKey<HomePageState> _homeKey = GlobalKey<HomePageState>();
+  late final List<Widget> _pages;
 
-  final List<Widget> _pages = const [
-    HomePage(),
-    ChecklistPage(),
-    CommunityPage(),
-    MyPage(),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _pages = [
+      HomePage(key: _homeKey),
+      const ChecklistPage(),
+      const CommunityPage(),
+      const MyPage(),
+    ];
+  }
 
   void _onTapBottomNav(int index) {
+    if (index == 0 && _currentIndex != 0) {
+      _homeKey.currentState?.refreshTodayTasksFromOutside();
+    }
     setState(() {
       _currentIndex = index;
     });

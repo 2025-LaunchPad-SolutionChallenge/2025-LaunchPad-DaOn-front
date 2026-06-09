@@ -14,10 +14,10 @@ class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
   @override
-  State<HomePage> createState() => _HomePageState();
+  State<HomePage> createState() => HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class HomePageState extends State<HomePage> {
   // ── Sheet state ──
   double _sheetPosition = 0.27;
   final double _minSheetSize = 0.27;
@@ -234,50 +234,60 @@ class _HomePageState extends State<HomePage> {
   Widget _buildTaskItem(TodayTaskItem item) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 14.0),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(8.0),
+      child: GestureDetector(
         onTap: () => _toggleTask(item),
+        behavior: HitTestBehavior.opaque,
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 150),
-              width: 20,
-              height: 20,
+            Container(
+              width: 14,
+              height: 14,
               decoration: BoxDecoration(
                 color: item.isCompleted
-                    ? ColorStyles.main1
-                    : Colors.transparent,
-                border: Border.all(
-                  color: item.isCompleted
-                      ? ColorStyles.main1
-                      : ColorStyles.grey2,
-                  width: 2.0,
-                ),
-                borderRadius: BorderRadius.circular(4.0),
+                    ? ColorStyles.main2
+                    : ColorStyles.secon5,
+                borderRadius: BorderRadius.circular(2),
               ),
-              child: item.isCompleted
-                  ? const Icon(Icons.check, color: Colors.white, size: 14)
-                  : null,
             ),
-            const SizedBox(width: 12.0),
+            const SizedBox(width: 8),
+            if (item.isAiGenerated) ...[
+              const Icon(Icons.auto_awesome, size: 16, color: Colors.blueAccent),
+              const SizedBox(width: 4),
+            ],
             Expanded(
               child: Text(
                 item.title,
-                style: FontStyles.med14.copyWith(
-                  color: item.isCompleted
-                      ? ColorStyles.grey1
-                      : ColorStyles.black2,
-                  decoration: item.isCompleted
-                      ? TextDecoration.lineThrough
-                      : null,
-                  decorationColor: ColorStyles.grey1,
-                ),
+                style: FontStyles.med14.copyWith(color: ColorStyles.black2),
               ),
             ),
           ],
         ),
       ),
     );
+  }
+
+  Future<void> refreshTodayTasksFromOutside() async {
+    final tasksFuture = _safeGet<TodayTasksResponse>(
+      _homeApi.getTodayTasks(), '[홈] 탭 복귀 할 일 재조회 실패');
+    final summaryFuture = _safeGet<HomeSummary>(
+      _homeApi.getHomeSummary(), '[홈] 탭 복귀 요약 재조회 실패');
+
+    final tasks = await tasksFuture;
+    final summary = await summaryFuture;
+
+    if (!mounted) return;
+    setState(() {
+      if (tasks != null) _shortTasks = tasks.items;
+      if (summary != null) _summary = summary;
+    });
+
+    if (_fullTasksFetched) {
+      final full = await _safeGet<TodayTasksResponse>(
+        _homeApi.getTodayTasksFull(), '[홈] 탭 복귀 전체 할 일 재조회 실패');
+      if (!mounted || full == null) return;
+      setState(() => _fullTasks = full.items);
+    }
   }
 
   int get _initialDropdownIndex {
