@@ -84,7 +84,7 @@ class _MyPageState extends State<MyPage> {
       body: Container(
         width: double.infinity,
         height: double.infinity,
-        padding: const EdgeInsets.only(top: 100.0),
+        padding: const EdgeInsets.only(top: 10.0),
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
@@ -119,82 +119,95 @@ class _MyPageState extends State<MyPage> {
                       ),
                     ),
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const RecoveryDashboardWidget(),
-                      const SizedBox(height: 20),
+                  // 수정된 부분: SingleChildScrollView를 추가하여 스크롤 활성화
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const RecoveryDashboardWidget(),
+                        const SizedBox(height: 20),
 
-                      TextButton(
-                        onPressed: () {},
-                        child: Text(
-                          '내 식물 확인하기',
-                          style: FontStyles.med16.copyWith(
-                            color: ColorStyles.black2,
+                        TextButton(
+                          onPressed: () {},
+                          style: TextButton.styleFrom(
+                            alignment: Alignment.centerLeft,
+                          ),
+                          child: Text(
+                            '내 식물 확인하기',
+                            style: FontStyles.med16.copyWith(
+                              color: ColorStyles.black2,
+                            ),
                           ),
                         ),
-                      ),
 
-                      TextButton(
-                        onPressed: () {},
-                        child: Text(
-                          '로그아웃',
-                          style: FontStyles.med16.copyWith(
-                            color: ColorStyles.black2,
+                        TextButton(
+                          onPressed: () {},
+                          style: TextButton.styleFrom(
+                            alignment: Alignment.centerLeft,
+                          ),
+                          child: Text(
+                            '로그아웃',
+                            style: FontStyles.med16.copyWith(
+                              color: ColorStyles.black2,
+                            ),
                           ),
                         ),
-                      ),
 
-                      TextButton(
-                        onPressed: () {},
-                        child: Text(
-                          '회원 탈퇴',
-                          style: FontStyles.med16.copyWith(
-                            color: ColorStyles.black2,
+                        TextButton(
+                          onPressed: () {},
+                          style: TextButton.styleFrom(
+                            alignment: Alignment.centerLeft,
+                          ),
+                          child: Text(
+                            '회원 탈퇴',
+                            style: FontStyles.med16.copyWith(
+                              color: ColorStyles.black2,
+                            ),
                           ),
                         ),
-                      ),
 
-                      if (kDebugMode) ...[
-                        const Spacer(),
-                        SizedBox(
-                          width: double.infinity,
-                          height: 54,
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: ColorStyles.white,
-                              foregroundColor: ColorStyles.main2,
-                              disabledBackgroundColor: ColorStyles.white
-                                  .withValues(alpha: 0.7),
-                              shadowColor: Colors.transparent,
-                              elevation: 0,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(7),
-                                side: const BorderSide(
-                                  color: ColorStyles.main2,
+                        if (kDebugMode) ...[
+                          // 스크롤 뷰 안에서는 Spacer()를 사용할 수 없으므로 SizedBox로 여백 제공
+                          const SizedBox(height: 40),
+                          SizedBox(
+                            width: double.infinity,
+                            height: 54,
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: ColorStyles.white,
+                                foregroundColor: ColorStyles.main2,
+                                disabledBackgroundColor: ColorStyles.white
+                                    .withValues(alpha: 0.7),
+                                shadowColor: Colors.transparent,
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(7),
+                                  side: const BorderSide(
+                                    color: ColorStyles.main2,
+                                  ),
                                 ),
                               ),
-                            ),
-                            onPressed: _isLoadingTokens
-                                ? null
-                                : _printWithdrawTestTokens,
-                            child: _isLoadingTokens
-                                ? const SizedBox(
-                                    width: 24,
-                                    height: 24,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: ColorStyles.main2,
+                              onPressed: _isLoadingTokens
+                                  ? null
+                                  : _printWithdrawTestTokens,
+                              child: _isLoadingTokens
+                                  ? const SizedBox(
+                                      width: 24,
+                                      height: 24,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: ColorStyles.main2,
+                                      ),
+                                    )
+                                  : Text(
+                                      'Withdraw 테스트 토큰 출력',
+                                      style: FontStyles.semi16,
                                     ),
-                                  )
-                                : Text(
-                                    'Withdraw 테스트 토큰 출력',
-                                    style: FontStyles.semi16,
-                                  ),
+                            ),
                           ),
-                        ),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
                 ),
               ),
