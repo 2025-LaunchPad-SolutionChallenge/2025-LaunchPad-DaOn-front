@@ -231,7 +231,14 @@ class _ChecklistPageState extends State<ChecklistPage> {
                       PictureButton(
                         text: '등록하기',
                         onPressed: () {},
-                        width: 112.0,
+                        width: 100.0,
+                        height: 33.0,
+                      ),
+                    if (_selectedIndex == 0)
+                      PictureButton(
+                        text: '생성하기',
+                        onPressed: () {},
+                        width: 100.0,
                         height: 33.0,
                       ),
                   ],
