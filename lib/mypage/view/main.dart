@@ -53,13 +53,17 @@ class _MyPageState extends State<MyPage> {
   @override
   void initState() {
     super.initState();
-    SelectedDisasterService.instance.selectedId.addListener(_onSelectedDisasterChanged);
+    SelectedDisasterService.instance.selectedId.addListener(
+      _onSelectedDisasterChanged,
+    );
     _loadMyPageData();
   }
 
   @override
   void dispose() {
-    SelectedDisasterService.instance.selectedId.removeListener(_onSelectedDisasterChanged);
+    SelectedDisasterService.instance.selectedId.removeListener(
+      _onSelectedDisasterChanged,
+    );
     super.dispose();
   }
 
@@ -135,7 +139,8 @@ class _MyPageState extends State<MyPage> {
       activeId = savedId;
     } else {
       // 저장값이 없거나 목록에 없으면 홈 요약 ID 또는 첫 번째 재난으로 fallback
-      activeId = homeSummary?.userDisasterId ??
+      activeId =
+          homeSummary?.userDisasterId ??
           (disasters.isNotEmpty ? disasters.first.userDisasterId : null);
       if (activeId != null) await svc.select(activeId);
     }
@@ -435,7 +440,8 @@ class _MyPageState extends State<MyPage> {
 
     // 선택된 재난의 disasterTypeName (없으면 홈 요약 fallback)
     final activeDisasterTypeName =
-        _selectedDisasterSummary?.disasterTypeName ?? _homeSummary?.disasterTypeName;
+        _selectedDisasterSummary?.disasterTypeName ??
+        _homeSummary?.disasterTypeName;
 
     return Scaffold(
       extendBodyBehindAppBar: true,
@@ -475,6 +481,7 @@ class _MyPageState extends State<MyPage> {
                 width: double.infinity,
                 child: ChecklistProgessBar(
                   currentCheck: _homeSummary?.todayCompletionRate ?? 0.0,
+                  text: '회복률',
                   textcolor: ColorStyles.white,
                   progresscolor: ColorStyles.main3,
                   backgroundcolor: ColorStyles.white,

@@ -6,6 +6,7 @@ import 'package:project_daon/ui/colorStyles.dart';
 
 class ChecklistProgessBar extends StatefulWidget {
   final double currentCheck;
+  final String? text;
   final Color? textcolor;
   final Color? progresscolor;
   final Color? backgroundcolor;
@@ -13,6 +14,7 @@ class ChecklistProgessBar extends StatefulWidget {
   ChecklistProgessBar({
     Key? key,
     required this.currentCheck,
+    this.text = '체크리스트 달성률',
     this.textcolor = ColorStyles.grey1,
     this.backgroundcolor = ColorStyles.grey2,
     this.progresscolor = ColorStyles.main1,
@@ -33,7 +35,7 @@ class _ChecklistProgessBarState extends State<ChecklistProgessBar> {
         Row(
           children: [
             Text(
-              '체크리스트 달성률',
+              widget.text.toString(),
               style: FontStyles.semi16.copyWith(color: ColorStyles.black2),
             ),
             SizedBox(width: 6.0),
