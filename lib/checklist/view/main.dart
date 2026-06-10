@@ -106,9 +106,9 @@ class _ChecklistPageState extends State<ChecklistPage> {
       _loadChecklist();
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('항목 추가에 실패했습니다.')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('항목 추가에 실패했습니다.')));
       }
     }
   }
@@ -145,9 +145,9 @@ class _ChecklistPageState extends State<ChecklistPage> {
       _loadChecklist();
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('항목 수정에 실패했습니다.')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('항목 수정에 실패했습니다.')));
       }
     }
   }
@@ -162,9 +162,9 @@ class _ChecklistPageState extends State<ChecklistPage> {
       _loadChecklist();
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('항목 삭제에 실패했습니다.')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('항목 삭제에 실패했습니다.')));
       }
     }
   }
@@ -210,9 +210,9 @@ class _ChecklistPageState extends State<ChecklistPage> {
     } catch (_) {
       if (mounted) {
         setState(() => _items[index].isChecked = !newValue);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('상태 변경에 실패했습니다.')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('상태 변경에 실패했습니다.')));
       }
     } finally {
       if (mounted) setState(() => _pendingStatusIds.remove(itemId));
@@ -347,8 +347,9 @@ class _ChecklistPageState extends State<ChecklistPage> {
                     if (_selectedIndex == 0)
                       PictureButton(
                         text: '생성하기',
-                        onPressed:
-                            _userDisasterId != null ? _showAddPopup : null,
+                        onPressed: _userDisasterId != null
+                            ? _showAddPopup
+                            : null,
                         width: 100.0,
                         height: 33.0,
                       ),
@@ -367,6 +368,7 @@ class _ChecklistPageState extends State<ChecklistPage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          //TODO: 메모의 내용을 넣을 상단 블럭. Memo가 제목 / 텍스트 정리하기가 내용
                           Container(
                             width: double.infinity,
                             padding: const EdgeInsets.all(16.0),
@@ -390,6 +392,7 @@ class _ChecklistPageState extends State<ChecklistPage> {
                           ),
                           const SizedBox(height: 28.0),
 
+                          //TODO: 아카이빙 탭에서 AII인 경우, 각각의 일자에 맞는 체크리스트 아이템의 파일들이 분류되어 들어가 있는 공간
                           if (allImages.isNotEmpty) ...[
                             _buildSectionTitle('All'),
                             const SizedBox(height: 12.0),

@@ -173,6 +173,7 @@ class _ChecklistItemWidgetState extends State<ChecklistItemWidget> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        //TODO: 메모 제목만 들어가는 공간. 없으면 해당 태그도 안보임
                         if (widget.item.memo != null &&
                             widget.item.memo!.trim().isNotEmpty)
                           _buildMemoArea(),
@@ -181,7 +182,7 @@ class _ChecklistItemWidgetState extends State<ChecklistItemWidget> {
                             widget.item.memo!.trim().isNotEmpty &&
                             widget.item.imageUrls.isNotEmpty)
                           const SizedBox(height: 12),
-
+                        //TODO: 이미지는 크기에 맞는 이미지가 들어가고, 파일일 경우 이미지를 최우선으로 표시하고 사진이 없을 때 파일이 있으면 그때는 파일을 미리보기로 파일 확장자에 따라 표시
                         if (widget.item.imageUrls.isNotEmpty) _buildFileArea(),
                       ],
                     ),
