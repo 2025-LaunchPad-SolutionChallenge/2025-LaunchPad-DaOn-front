@@ -49,6 +49,11 @@ dependencies:
   geolocator: ^14.0.0
   flutter_naver_map: ^1.4.4
 
+  # 사진
+  image_picker: ^1.2.2
+  firebase_storage: ^13.4.2
+
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

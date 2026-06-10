@@ -2,12 +2,17 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 import 'package:project_daon/checklist/widget/checkProgress.dart';
+import 'package:project_daon/core/service/auth_service.dart';
+import 'package:project_daon/core/service/selected_disaster_service.dart';
+import 'package:project_daon/home/api/homeApi.dart';
 import 'package:project_daon/mypage/api/mypageApi.dart';
+import 'package:project_daon/mypage/model/userModel.dart';
+import 'package:project_daon/mypage/view/profileEditPage.dart';
 import 'package:project_daon/mypage/widget/myPageAppBarWidget.dart';
 import 'package:project_daon/mypage/widget/myProfileWidget.dart';
 import 'package:project_daon/mypage/widget/recoverydashboardWidget.dart';
+import 'package:project_daon/onboarding/view/onboardingController.dart';
 import 'package:project_daon/ui/colorStyles.dart';
 import 'package:project_daon/ui/fontStyles.dart';
 
@@ -19,17 +24,195 @@ class MyPage extends StatefulWidget {
 }
 
 class _MyPageState extends State<MyPage> {
-  String name = '이재현';
-  int level = 2;
-  String disaster = '홍수';
+  UserProfile? _profile;
+  ResidenceStatus? _residenceStatus;
+  HomeSummary? _homeSummary;
+  RecoveryStageResponse? _recoveryStage;
+  List<UserDisasterSummary> _disasters = [];
+  bool _isProfileLoading = true;
 
   final MypageApi _mypageApi = MypageApi();
+  final HomeApi _homeApi = HomeApi();
 
   bool _isLogoutLoading = false;
   bool _isWithdrawLoading = false;
   bool _isLoadingTokens = false;
 
   static const FlutterSecureStorage _storage = FlutterSecureStorage();
+
+  // ── 현재 선택된 재난 (모든 재난 목록 기준) ──
+  UserDisasterSummary? get _selectedDisasterSummary {
+    final id = SelectedDisasterService.instance.selectedId.value;
+    if (id == null || _disasters.isEmpty) return null;
+    for (final d in _disasters) {
+      if (d.userDisasterId == id) return d;
+    }
+    return null;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    SelectedDisasterService.instance.selectedId.addListener(
+      _onSelectedDisasterChanged,
+    );
+    _loadMyPageData();
+  }
+
+  @override
+  void dispose() {
+    SelectedDisasterService.instance.selectedId.removeListener(
+      _onSelectedDisasterChanged,
+    );
+    super.dispose();
+  }
+
+  void _onSelectedDisasterChanged() {
+    if (!mounted) return;
+    final id = SelectedDisasterService.instance.selectedId.value;
+    if (kDebugMode) debugPrint('[마이페이지] 선택 재난 변경 감지: userDisasterId=$id');
+    setState(() {});
+    if (id != null) _reloadRecoveryStage(id);
+  }
+
+  Future<void> _reloadRecoveryStage(int id) async {
+    try {
+      final stage = await _homeApi.getRecoveryStage(id);
+      if (!mounted) return;
+      setState(() => _recoveryStage = stage);
+    } catch (e) {
+      if (kDebugMode) debugPrint('[마이페이지] 회복 단계 재조회 실패: $e');
+    }
+  }
+
+  Future<void> _loadMyPageData() async {
+    if (!mounted) return;
+    setState(() => _isProfileLoading = true);
+
+    // 저장된 선택 재난 ID가 없으면 스토리지에서 복원
+    if (SelectedDisasterService.instance.selectedId.value == null) {
+      await SelectedDisasterService.instance.initFromStorage();
+    }
+
+    UserProfile? profile;
+    ResidenceStatus? residenceStatus;
+    HomeSummary? homeSummary;
+    List<UserDisasterSummary> disasters = [];
+
+    await Future.wait([
+      _mypageApi
+          .getUserProfile()
+          .then<void>((p) {
+            profile = p;
+          })
+          .catchError((Object e) {
+            if (kDebugMode) debugPrint('[마이페이지] 프로필 조회 실패: $e');
+          }),
+      _mypageApi.getResidenceStatus().then<void>((r) {
+        residenceStatus = r;
+      }),
+      _homeApi
+          .getHomeSummary()
+          .then<void>((s) {
+            homeSummary = s;
+          })
+          .catchError((Object e) {
+            if (kDebugMode) debugPrint('[마이페이지] 홈 요약 조회 실패: $e');
+          }),
+      _homeApi
+          .getDisasterList()
+          .then<void>((r) {
+            disasters = r.content;
+            if (kDebugMode) debugPrint('[마이페이지] 재난 목록: ${disasters.length}개');
+          })
+          .catchError((Object e) {
+            if (kDebugMode) debugPrint('[마이페이지] 재난 목록 조회 실패: $e');
+          }),
+    ]);
+
+    // 선택된 재난 ID 결정
+    final svc = SelectedDisasterService.instance;
+    final savedId = svc.selectedId.value;
+    int? activeId;
+
+    if (savedId != null && disasters.any((d) => d.userDisasterId == savedId)) {
+      activeId = savedId;
+    } else {
+      // 저장값이 없거나 목록에 없으면 홈 요약 ID 또는 첫 번째 재난으로 fallback
+      activeId =
+          homeSummary?.userDisasterId ??
+          (disasters.isNotEmpty ? disasters.first.userDisasterId : null);
+      if (activeId != null) await svc.select(activeId);
+    }
+
+    RecoveryStageResponse? recoveryStage;
+    if (activeId != null) {
+      try {
+        recoveryStage = await _homeApi.getRecoveryStage(activeId);
+      } catch (e) {
+        if (kDebugMode) debugPrint('[마이페이지] 회복 단계 조회 실패: $e');
+      }
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _profile = profile;
+      _residenceStatus = residenceStatus;
+      _homeSummary = homeSummary;
+      _recoveryStage = recoveryStage;
+      _disasters = disasters;
+      _isProfileLoading = false;
+    });
+  }
+
+  Future<void> _handleProfileEdit() async {
+    final profile = _profile;
+    if (profile == null) return;
+
+    final updated = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(builder: (_) => ProfileEditPage(profile: profile)),
+    );
+
+    if (updated == true) {
+      await _loadMyPageData();
+    }
+  }
+
+  Future<void> _handleAddDisaster() async {
+    final accessToken = await AuthService().getAccessToken();
+
+    if (!mounted) return;
+    if (accessToken == null || accessToken.isEmpty) {
+      _showSnackBar('로그인이 필요합니다. 다시 로그인해 주세요.');
+      if (!mounted) return;
+      Navigator.of(context).pushNamedAndRemoveUntil('/login', (_) => false);
+      return;
+    }
+
+    if (kDebugMode) debugPrint('[마이페이지] 재난 추가 온보딩 시작');
+
+    final newId = await Navigator.push<int?>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const OnboardingController(addDisasterMode: true),
+      ),
+    );
+
+    if (!mounted) return;
+
+    if (newId != null) {
+      _showSnackBar('새 재난이 등록되었습니다.');
+      await _loadMyPageData();
+    }
+  }
+
+  Future<void> _handleDisasterSelected(int id) async {
+    if (kDebugMode) debugPrint('[마이페이지] 재난 선택: userDisasterId=$id');
+    await SelectedDisasterService.instance.select(id);
+    if (mounted) setState(() {});
+    _reloadRecoveryStage(id);
+  }
 
   Future<void> _handleLogout() async {
     if (_isLogoutLoading || _isWithdrawLoading) return;
@@ -106,6 +289,7 @@ class _MyPageState extends State<MyPage> {
 
   Future<void> _clearLocalAuthData() async {
     await _storage.deleteAll();
+    await SelectedDisasterService.instance.clear();
 
     try {
       await FirebaseAuth.instance.signOut();
@@ -250,6 +434,15 @@ class _MyPageState extends State<MyPage> {
 
   @override
   Widget build(BuildContext context) {
+    final profile = _profile;
+    final residenceVerified =
+        _residenceStatus?.verified ?? profile?.residenceVerified ?? false;
+
+    // 선택된 재난의 disasterTypeName (없으면 홈 요약 fallback)
+    final activeDisasterTypeName =
+        _selectedDisasterSummary?.disasterTypeName ??
+        _homeSummary?.disasterTypeName;
+
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: MypageAppBarWidget(),
@@ -267,12 +460,32 @@ class _MyPageState extends State<MyPage> {
         child: SafeArea(
           child: Column(
             children: [
-              MyProfileWidget(name: name, level: level, disaster: disaster),
+              _isProfileLoading
+                  ? const SizedBox(
+                      height: 210,
+                      child: Center(
+                        child: CircularProgressIndicator(color: Colors.white),
+                      ),
+                    )
+                  : MyProfileWidget(
+                      name: profile?.displayName ?? '사용자',
+                      stageId: _recoveryStage?.stageId,
+                      stageName: _recoveryStage?.stageName,
+                      disasterTypeName: activeDisasterTypeName,
+                      profileImageUrl: profile?.profileImage,
+                      residenceVerified: residenceVerified,
+                    ),
 
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
                 width: double.infinity,
-                child: ChecklistProgessBar(currentCheck: 58.9),
+                child: ChecklistProgessBar(
+                  currentCheck: _homeSummary?.todayCompletionRate ?? 0.0,
+                  text: '회복률',
+                  textcolor: ColorStyles.white,
+                  progresscolor: ColorStyles.main3,
+                  backgroundcolor: ColorStyles.white,
+                ),
               ),
 
               Expanded(
@@ -295,8 +508,21 @@ class _MyPageState extends State<MyPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const RecoveryDashboardWidget(),
-                        const SizedBox(height: 20),
+                        RecoveryDashboardWidget(
+                          disasters: _disasters,
+                          selectedDisasterId:
+                              SelectedDisasterService.instance.selectedId.value,
+                          onDisasterSelected: _handleDisasterSelected,
+                          onAddDisaster: _handleAddDisaster,
+                        ),
+                        const SizedBox(height: 16),
+
+                        _buildMenuButton(
+                          text: '프로필 수정하기',
+                          onPressed: _isProfileLoading
+                              ? null
+                              : _handleProfileEdit,
+                        ),
 
                         _buildMenuButton(text: '내 식물 확인하기', onPressed: () {}),
 

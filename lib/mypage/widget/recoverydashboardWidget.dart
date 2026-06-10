@@ -1,12 +1,24 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:project_daon/mypage/model/disasterRecord.dart';
+import 'package:project_daon/home/api/homeApi.dart';
 import 'package:project_daon/mypage/widget/disasterCardWidget.dart';
 import 'package:project_daon/mypage/widget/stateToggleWidget.dart';
-import 'package:project_daon/ui/fontStyles.dart';
 import 'package:project_daon/ui/colorStyles.dart';
+import 'package:project_daon/ui/fontStyles.dart';
 
 class RecoveryDashboardWidget extends StatefulWidget {
-  const RecoveryDashboardWidget({Key? key}) : super(key: key);
+  final List<UserDisasterSummary> disasters;
+  final int? selectedDisasterId;
+  final ValueChanged<int> onDisasterSelected;
+  final VoidCallback onAddDisaster;
+
+  const RecoveryDashboardWidget({
+    Key? key,
+    required this.disasters,
+    this.selectedDisasterId,
+    required this.onDisasterSelected,
+    required this.onAddDisaster,
+  }) : super(key: key);
 
   @override
   State<RecoveryDashboardWidget> createState() =>
@@ -14,42 +26,27 @@ class RecoveryDashboardWidget extends StatefulWidget {
 }
 
 class _RecoveryDashboardWidgetState extends State<RecoveryDashboardWidget> {
-  // 초기 상태는 '회복 중'
-  RecoveryStatus _currentStatus = RecoveryStatus.recovering;
+  // '전체' | 'ACTIVE' | 'EXPIRED' | 'ARCHIVED'
+  String _currentStatus = '전체';
 
-  // 테스트용 더미 데이터 (회복 중인 재난이 2개라고 가정)
-  final List<DisasterRecord> _records = [
-    DisasterRecord(
-      title: '홍수 피해',
-      date: '2025 - 02 - 24',
-      location: '용산구 일대',
-      damageDetail: '주거 공간 피해, 차량 피해',
-      status: RecoveryStatus.recovering,
-    ),
-    DisasterRecord(
-      title: '태풍 피해',
-      date: '2025 - 08 - 12',
-      location: '강남구 일대',
-      damageDetail: '창문 파손, 간판 추락',
-      status: RecoveryStatus.recovering,
-    ),
-    DisasterRecord(
-      title: '화재 피해',
-      date: '2024 - 11 - 10',
-      location: '마포구 일대',
-      damageDetail: '상가 전소',
-      status: RecoveryStatus.completed,
-    ),
-  ];
+  List<UserDisasterSummary> get _filteredRecords {
+    if (_currentStatus == '전체') return widget.disasters;
+    return widget.disasters.where((d) => d.status == _currentStatus).toList();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final filteredRecords = _records
-        .where((record) => record.status == _currentStatus)
-        .toList();
+    if (kDebugMode) {
+      debugPrint(
+        '[마이페이지] RecoveryDashboardWidget build, count=${widget.disasters.length}',
+      );
+    }
+
+    final filteredRecords = _filteredRecords;
 
     return Column(
       children: [
+        // ── 헤더 Row: 제목 + StateToggleWidget ──
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -60,9 +57,21 @@ class _RecoveryDashboardWidgetState extends State<RecoveryDashboardWidget> {
             StateToggleWidget(
               currentStatus: _currentStatus,
               onStatusChanged: (newStatus) {
-                setState(() {
-                  _currentStatus = newStatus; // 상태 업데이트 및 UI 재빌드
-                });
+                if (kDebugMode) debugPrint('[재난] 상태 필터 변경: $newStatus');
+                setState(() => _currentStatus = newStatus);
+                // 필터 변경 후 선택 재난이 새 목록에 없으면 첫 번째로 자동 선택
+                final newFiltered = newStatus == '전체'
+                    ? widget.disasters
+                    : widget.disasters
+                        .where((d) => d.status == newStatus)
+                        .toList();
+                if (newFiltered.isNotEmpty) {
+                  final currentId = widget.selectedDisasterId;
+                  if (currentId == null ||
+                      !newFiltered.any((d) => d.userDisasterId == currentId)) {
+                    widget.onDisasterSelected(newFiltered.first.userDisasterId);
+                  }
+                }
               },
             ),
           ],
@@ -71,7 +80,7 @@ class _RecoveryDashboardWidgetState extends State<RecoveryDashboardWidget> {
 
         if (filteredRecords.isEmpty)
           Container(
-            padding: EdgeInsets.symmetric(vertical: 40.0),
+            padding: const EdgeInsets.symmetric(vertical: 40.0),
             width: double.infinity,
             height: 190,
             child: Center(
@@ -82,7 +91,12 @@ class _RecoveryDashboardWidgetState extends State<RecoveryDashboardWidget> {
             ),
           )
         else
-          DisasterCardWidget(records: filteredRecords),
+          DisasterCardWidget(
+            records: filteredRecords,
+            selectedId: widget.selectedDisasterId,
+            onDisasterSelected: widget.onDisasterSelected,
+            onAddDisaster: widget.onAddDisaster,
+          ),
       ],
     );
   }

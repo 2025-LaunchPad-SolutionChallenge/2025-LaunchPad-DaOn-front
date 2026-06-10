@@ -1,56 +1,59 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:project_daon/mypage/model/disasterRecord.dart';
+import 'package:project_daon/home/api/homeApi.dart';
 import 'package:project_daon/mypage/widget/myPageDropdown.dart';
 import 'package:project_daon/ui/colorStyles.dart';
-// 위에서 만든 Dropdown 위젯 import 해주세요
-// import 'package:project_daon/mypage/widget/dropdown.dart';
 
-class DisasterCardWidget extends StatefulWidget {
-  final List<DisasterRecord> records;
+// GET /api/v1/disasters 응답에는 location/damageDetail 필드가 없습니다.
+// GET /api/v1/disasters/{id} 응답에도 location/damageDetail이 없어
+// 두 항목은 현재 fallback 텍스트로 표시됩니다.
+class DisasterCardWidget extends StatelessWidget {
+  final List<UserDisasterSummary> records;
+  final int? selectedId;
+  final ValueChanged<int> onDisasterSelected;
+  final VoidCallback onAddDisaster;
 
-  const DisasterCardWidget({Key? key, required this.records}) : super(key: key);
+  const DisasterCardWidget({
+    Key? key,
+    required this.records,
+    this.selectedId,
+    required this.onDisasterSelected,
+    required this.onAddDisaster,
+  }) : super(key: key);
 
-  @override
-  State<DisasterCardWidget> createState() => _DisasterCardWidgetState();
-}
-
-class _DisasterCardWidgetState extends State<DisasterCardWidget> {
-  late DisasterRecord _selectedRecord;
-
-  @override
-  void initState() {
-    super.initState();
-    _selectedRecord = widget.records.first; // 기본값으로 첫 번째 선택
-  }
-
-  @override
-  void didUpdateWidget(covariant DisasterCardWidget oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    // 상단 탭이 변경되어 새로운 리스트가 오면 다시 첫 번째 항목으로 초기화
-    if (widget.records != oldWidget.records) {
-      _selectedRecord = widget.records.first;
+  UserDisasterSummary get _selectedRecord {
+    final id = selectedId;
+    if (id != null) {
+      for (final r in records) {
+        if (r.userDisasterId == id) return r;
+      }
     }
+    return records.first;
   }
 
-  String _getStatusText(RecoveryStatus status) {
+  String _statusLabel(String status) {
     switch (status) {
-      case RecoveryStatus.recovering:
+      case 'ACTIVE':
         return '회복 중';
-      case RecoveryStatus.completed:
+      case 'EXPIRED':
         return '회복 완료';
-      case RecoveryStatus.archived:
+      case 'ARCHIVED':
         return '보관';
+      default:
+        return status;
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    // Dropdown에 전달할 String 리스트 생성 ('홍수 피해 / 2025 - 02 - 24' 형태)
-    final List<String> dropdownItems = widget.records
-        .map((r) => '${r.title}  |  ${r.date}')
-        .toList();
-    final String currentDropdownValue =
-        '${_selectedRecord.title}  |  ${_selectedRecord.date}';
+    final selected = _selectedRecord;
+    final dropdownItems = records.map((r) => r.displayLabel).toList();
+
+    if (kDebugMode) {
+      debugPrint(
+        '[재난] 카드 표시: location=장소 정보 없음, damageDetail=등록된 피해 정보 없음',
+      );
+    }
 
     return Container(
       padding: const EdgeInsets.all(16.0),
@@ -62,26 +65,56 @@ class _DisasterCardWidgetState extends State<DisasterCardWidget> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // ── 드롭다운 + + 버튼 + 상태 레이블 ──
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              MyPageDropdown(
-                items: dropdownItems,
-                selectedValue: currentDropdownValue,
-                color: 'main1',
-                onChanged: (String? newValue) {
-                  if (newValue != null) {
-                    setState(() {
-                      _selectedRecord = widget.records.firstWhere(
-                        (r) => '${r.title}  |  ${r.date}' == newValue,
-                      );
-                    });
-                  }
-                },
+              Expanded(
+                child: MyPageDropdown(
+                  items: dropdownItems,
+                  selectedValue: selected.displayLabel,
+                  color: 'main1',
+                  onChanged: (label) {
+                    if (label == null) return;
+                    for (final r in records) {
+                      if (r.displayLabel == label) {
+                        if (kDebugMode) {
+                          debugPrint(
+                            '[재난] 선택 변경: userDisasterId=${r.userDisasterId}',
+                          );
+                        }
+                        onDisasterSelected(r.userDisasterId);
+                        break;
+                      }
+                    }
+                  },
+                ),
               ),
-              // 우측 상단 상태 텍스트
+              const SizedBox(width: 8),
+              // 재난 추가 + 버튼
+              Tooltip(
+                message: '재난 추가',
+                child: InkWell(
+                  onTap: onAddDisaster,
+                  borderRadius: BorderRadius.circular(20),
+                  child: Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: ColorStyles.main1),
+                    ),
+                    child: const Icon(
+                      Icons.add,
+                      color: ColorStyles.main1,
+                      size: 18,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              // 상태 레이블
               Text(
-                _getStatusText(_selectedRecord.status),
+                _statusLabel(selected.status),
                 style: const TextStyle(
                   color: ColorStyles.main2,
                   fontWeight: FontWeight.bold,
@@ -90,14 +123,16 @@ class _DisasterCardWidgetState extends State<DisasterCardWidget> {
             ],
           ),
           const SizedBox(height: 16),
-          Text(
-            _selectedRecord.location,
-            style: const TextStyle(color: Colors.grey, fontSize: 12),
+          // 장소 (API 미제공 → fallback)
+          const Text(
+            '장소 정보 없음',
+            style: TextStyle(color: Colors.grey, fontSize: 12),
           ),
           const SizedBox(height: 4),
-          Text(
-            '피해 정도 : ${_selectedRecord.damageDetail}',
-            style: const TextStyle(fontSize: 14, color: Colors.black87),
+          // 피해 정도 (API 미제공 → fallback)
+          const Text(
+            '피해 정도: 등록된 피해 정보 없음',
+            style: TextStyle(fontSize: 14, color: Colors.black87),
           ),
           const SizedBox(height: 17),
           Align(

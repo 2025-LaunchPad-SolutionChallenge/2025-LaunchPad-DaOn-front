@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:project_daon/checklist/view/checklistAiAddPage.dart';
 import 'package:project_daon/checklist/widget/addBottomPopup.dart';
@@ -10,6 +11,7 @@ import 'package:project_daon/checklist/widget/checklistWeekWidget.dart';
 import 'package:project_daon/checklist/widget/itemBottomPopup.dart';
 import 'package:project_daon/common/widget/tapBarWidget.dart';
 import 'package:project_daon/core/service/auth_service.dart';
+import 'package:project_daon/core/service/selected_disaster_service.dart';
 import 'package:project_daon/ui/colorStyles.dart';
 import 'package:project_daon/ui/fontStyles.dart';
 
@@ -35,7 +37,24 @@ class _ChecklistPageState extends State<ChecklistPage> {
   @override
   void initState() {
     super.initState();
+    SelectedDisasterService.instance.selectedId.addListener(_onGlobalDisasterChanged);
     _loadChecklist();
+  }
+
+  @override
+  void dispose() {
+    SelectedDisasterService.instance.selectedId.removeListener(_onGlobalDisasterChanged);
+    super.dispose();
+  }
+
+  void _onGlobalDisasterChanged() {
+    if (!mounted) return;
+    final id = SelectedDisasterService.instance.selectedId.value;
+    if (id != null && id != _userDisasterId) {
+      if (kDebugMode) debugPrint('[체크리스트] 전역 재난 변경 감지: userDisasterId=$id');
+      _userDisasterId = id;
+      _loadChecklist();
+    }
   }
 
   String _formatDate(DateTime date) {
@@ -57,19 +76,32 @@ class _ChecklistPageState extends State<ChecklistPage> {
   }
 
   Future<int> _loadUserDisasterId() async {
+    // 1순위: SelectedDisasterService (전역 선택 상태)
+    final svcId = SelectedDisasterService.instance.selectedId.value;
+    if (svcId != null) {
+      _userDisasterId = svcId;
+      if (kDebugMode) debugPrint('[체크리스트] 전역 선택 재난 사용: userDisasterId=$svcId');
+      return svcId;
+    }
+
+    // 이미 조회된 값 재사용
     if (_userDisasterId != null) return _userDisasterId!;
 
+    // 2순위: /home/summary에서 조회 (fallback)
+    if (kDebugMode) debugPrint('[체크리스트] /home/summary에서 userDisasterId 조회');
     final response = await _dio.get('/api/v1/home/summary');
     final data = _asMap(response.data);
     final id = data['userDisasterId'];
 
     if (id is int) {
       _userDisasterId = id;
+      await SelectedDisasterService.instance.select(id);
       return id;
     }
 
     if (id is num) {
       _userDisasterId = id.toInt();
+      await SelectedDisasterService.instance.select(id.toInt());
       return id.toInt();
     }
 
