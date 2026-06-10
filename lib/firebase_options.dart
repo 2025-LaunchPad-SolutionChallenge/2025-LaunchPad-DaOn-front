@@ -57,25 +57,23 @@ class DefaultFirebaseOptions {
     projectId: 'daon-launchpad',
     storageBucket: 'daon-launchpad.firebasestorage.app',
   );
-
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyAmf6KZNAjCEzNK3kSZbEMvaUf_kONl1k8',
     appId: '1:834015954:ios:c54e434a42c0fa9a16530b',
     messagingSenderId: '834015954',
     projectId: 'daon-launchpad',
     storageBucket: 'daon-launchpad.firebasestorage.app',
-    androidClientId: '834015954-t0rcd1sn47apmjvn7fm2mncfj7mgjch2.apps.googleusercontent.com',
+    androidClientId: '834015954-j7fj5mg8v7gg73cvu9nk81o34qh36hvh.apps.googleusercontent.com',
     iosClientId: '834015954-bi8ft0bkmfhbaj66ace3l20ovq5e9uj3.apps.googleusercontent.com',
     iosBundleId: 'com.example.projectDaon',
   );
-
   static const FirebaseOptions macos = FirebaseOptions(
     apiKey: 'AIzaSyAmf6KZNAjCEzNK3kSZbEMvaUf_kONl1k8',
     appId: '1:834015954:ios:c54e434a42c0fa9a16530b',
     messagingSenderId: '834015954',
     projectId: 'daon-launchpad',
     storageBucket: 'daon-launchpad.firebasestorage.app',
-    androidClientId: '834015954-t0rcd1sn47apmjvn7fm2mncfj7mgjch2.apps.googleusercontent.com',
+    androidClientId: '834015954-j7fj5mg8v7gg73cvu9nk81o34qh36hvh.apps.googleusercontent.com',
     iosClientId: '834015954-bi8ft0bkmfhbaj66ace3l20ovq5e9uj3.apps.googleusercontent.com',
     iosBundleId: 'com.example.projectDaon',
   );

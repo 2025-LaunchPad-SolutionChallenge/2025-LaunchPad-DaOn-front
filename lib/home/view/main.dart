@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:project_daon/common/widget/yellowBackButton.dart';
 import 'package:project_daon/common/widget/Dropdwon.dart';
+import 'package:project_daon/core/service/selected_disaster_service.dart';
 import 'package:project_daon/home/api/homeApi.dart';
 import 'package:project_daon/home/view/dailyStatusCheckPage.dart';
 import 'package:project_daon/home/widget/semiCircleProgressBar.dart';
@@ -45,7 +46,32 @@ class HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
+    SelectedDisasterService.instance.selectedId.addListener(_onGlobalDisasterChanged);
     _loadAll();
+  }
+
+  @override
+  void dispose() {
+    SelectedDisasterService.instance.selectedId.removeListener(_onGlobalDisasterChanged);
+    super.dispose();
+  }
+
+  void _onGlobalDisasterChanged() {
+    if (!mounted) return;
+    final id = SelectedDisasterService.instance.selectedId.value;
+    if (id != null && id != _selectedDisasterId) {
+      if (kDebugMode) debugPrint('[홈] 전역 재난 변경 감지: userDisasterId=$id');
+      final match = _disasters.where((d) => d.userDisasterId == id);
+      setState(() {
+        _selectedDisasterId = id;
+        _selectedProgress = match.isNotEmpty ? match.first.recoveryProgress : null;
+        _stage = null;
+      });
+      _loadStage(id);
+      // TODO: /api/v1/home/summary 및 /api/v1/home/today-tasks가 userDisasterId 쿼리 파라미터를
+      // 지원하지 않으므로, 재난 변경 시 요약/할 일을 다른 재난 기준으로 재조회할 수 없습니다.
+      // 백엔드에서 해당 파라미터를 지원하면 여기서 _refetchAfterCheck()를 호출하세요.
+    }
   }
 
   // ── Helpers ──
@@ -86,17 +112,36 @@ class HomePageState extends State<HomePage> {
 
     if (!mounted) return;
 
+    // 저장된 선택 ID 복원 (없으면 storage에서)
+    if (SelectedDisasterService.instance.selectedId.value == null) {
+      await SelectedDisasterService.instance.initFromStorage();
+    }
+
+    // 선택 ID 결정: 저장값 → 목록에 있으면 유지, 없으면 summary ID로 fallback
+    final svc = SelectedDisasterService.instance;
+    final disasterList = disasters?.content ?? [];
+    final savedId = svc.selectedId.value;
+    int? activeId;
+
+    if (savedId != null && disasterList.any((d) => d.userDisasterId == savedId)) {
+      activeId = savedId;
+    } else {
+      activeId = summary?.userDisasterId;
+      if (activeId != null) await svc.select(activeId);
+    }
+
     setState(() {
       if (summary != null) _summary = summary;
       if (dailyStatus != null) _todayCheckDone = dailyStatus.checked;
       if (tasks != null) _shortTasks = tasks.items;
       if (disasters != null) _disasters = disasters.content;
-      _selectedDisasterId = summary?.userDisasterId;
+      _selectedDisasterId = activeId ?? summary?.userDisasterId;
       _tasksInitiallyLoaded = true;
     });
 
-    if (summary != null) {
-      _loadStage(summary.userDisasterId);
+    final loadId = activeId ?? summary?.userDisasterId;
+    if (loadId != null) {
+      _loadStage(loadId);
     }
   }
 
@@ -371,6 +416,8 @@ class HomePageState extends State<HomePage> {
                       onIndexChanged: (index) {
                         if (index < 0 || index >= _disasters.length) return;
                         final disaster = _disasters[index];
+                        if (kDebugMode) debugPrint('[홈] 드롭다운 선택: userDisasterId=${disaster.userDisasterId}');
+                        SelectedDisasterService.instance.select(disaster.userDisasterId);
                         setState(() {
                           _selectedDisasterId = disaster.userDisasterId;
                           _selectedProgress = disaster.recoveryProgress;

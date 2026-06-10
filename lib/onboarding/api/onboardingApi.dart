@@ -112,11 +112,13 @@ class OnboardingApi {
   // POST /api/v1/disasters/onboarding  (accessToken 필수 — app Dio 사용)
   // ──────────────────────────────────────────────────────────────
 
-  Future<void> submitDisasterOnboarding(
+  // detailOffset: 일반 온보딩=5 (section1 4개 + 재난유형 1개), 재난추가모드=1 (재난유형만 1개)
+  Future<int?> submitDisasterOnboarding(
     Map<int, dynamic> userAnswers,
-    String selectedDisaster,
-  ) async {
-    final body = buildDisasterOnboardingPayload(userAnswers, selectedDisaster);
+    String selectedDisaster, {
+    int detailOffset = 5,
+  }) async {
+    final body = buildDisasterOnboardingPayload(userAnswers, selectedDisaster, detailOffset: detailOffset);
 
     if (kDebugMode) {
       debugPrint('[온보딩 Step2] POST /api/v1/disasters/onboarding');
@@ -148,14 +150,14 @@ class OnboardingApi {
     }
 
     if (status >= 200 && status < 300) {
+      final userDisasterId = (data is Map) ? (data['userDisasterId'] as num?)?.toInt() : null;
       final impactId = (data is Map) ? data['impactId'] : null;
       final message = (data is Map) ? (data['message'] ?? '피해 상황이 등록되었습니다') : '피해 상황이 등록되었습니다';
-      // onboardingRiskLevel은 Swagger 스펙에 없어도 있으면 파싱, 없으면 null
       final riskLevel = (data is Map) ? data['onboardingRiskLevel'] : null;
       if (kDebugMode) {
-        debugPrint('[온보딩 Step2] 등록 성공 | impactId=$impactId | message=$message | riskLevel=$riskLevel');
+        debugPrint('[온보딩 Step2] 등록 성공 | userDisasterId=$userDisasterId | impactId=$impactId | message=$message | riskLevel=$riskLevel');
       }
-      return;
+      return userDisasterId;
     }
 
     final errorCode = (data is Map) ? (data['code']?.toString() ?? '') : '';
@@ -165,6 +167,7 @@ class OnboardingApi {
     throw Exception('[$errorCode] $errorMsg');
   }
 
+
   // ──────────────────────────────────────────────────────────────
   // Flat request body 빌더
   // Swagger OnboardingRequest 스키마와 1:1 대응
@@ -172,20 +175,24 @@ class OnboardingApi {
   // ──────────────────────────────────────────────────────────────
 
   /// 재난 온보딩 API 요청 body를 flat 구조로 빌드합니다.
+  /// [detailOffset]: 상세 질문이 시작되는 userAnswers 인덱스
+  ///   - 일반 온보딩: 5 (section1 4개 + 재난유형 1개)
+  ///   - 재난 추가 모드: 1 (재난유형만 1개)
   /// damages 배열 길이가 기대값과 다르면 예외를 던집니다.
   Map<String, dynamic> buildDisasterOnboardingPayload(
     Map<int, dynamic> userAnswers,
-    String selectedDisaster,
-  ) {
+    String selectedDisaster, {
+    int detailOffset = 5,
+  }) {
     final disasterType = _mapDisasterType(selectedDisaster);
     final safetyStatus =
-        _mapSafetyStatus((userAnswers[5] as List<String>?)?.first ?? '');
+        _mapSafetyStatus((userAnswers[detailOffset] as List<String>?)?.first ?? '');
     final residenceStatus =
-        _mapResidenceStatus((userAnswers[6] as List<String>?)?.first ?? '');
+        _mapResidenceStatus((userAnswers[detailOffset + 1] as List<String>?)?.first ?? '');
     final injuryLevel =
-        _mapInjuryLevel((userAnswers[7] as List<String>?)?.first ?? '');
+        _mapInjuryLevel((userAnswers[detailOffset + 2] as List<String>?)?.first ?? '');
 
-    final selectedDamages = (userAnswers[8] as List<String>?) ?? <String>[];
+    final selectedDamages = (userAnswers[detailOffset + 3] as List<String>?) ?? <String>[];
     final damages = _buildDamagesArray(selectedDisaster, selectedDamages);
 
     // 재난별 고유 필드 (해당 없는 재난은 null)
@@ -197,21 +204,21 @@ class OnboardingApi {
 
     switch (selectedDisaster) {
       case '홍수':
-        final floodRaw = (userAnswers[9] as List<String>?)?.first ?? '';
-        final drainRaw = (userAnswers[10] as List<String>?)?.first ?? '';
+        final floodRaw = (userAnswers[detailOffset + 4] as List<String>?)?.first ?? '';
+        final drainRaw = (userAnswers[detailOffset + 5] as List<String>?)?.first ?? '';
         if (floodRaw.isEmpty) throw Exception('침수 정도를 선택해 주세요.');
         if (drainRaw.isEmpty) throw Exception('물 빠짐 상태를 선택해 주세요.');
         floodLevel = _mapFloodLevel(floodRaw);
         waterDrainStatus = _mapWaterDrainStatus(drainRaw);
 
       case '지진':
-        final aftershockRaw = (userAnswers[9] as List<String>?)?.first ?? '';
+        final aftershockRaw = (userAnswers[detailOffset + 4] as List<String>?)?.first ?? '';
         if (aftershockRaw.isEmpty) throw Exception('여진 상태를 선택해 주세요.');
         aftershockFeeling = _mapAftershockFeeling(aftershockRaw);
 
       case '화재':
-        final scopeRaw = (userAnswers[9] as List<String>?)?.first ?? '';
-        final smokeRaw = (userAnswers[10] as List<String>?)?.first ?? '';
+        final scopeRaw = (userAnswers[detailOffset + 4] as List<String>?)?.first ?? '';
+        final smokeRaw = (userAnswers[detailOffset + 5] as List<String>?)?.first ?? '';
         if (scopeRaw.isEmpty) throw Exception('피해 범위를 선택해 주세요.');
         if (smokeRaw.isEmpty) throw Exception('연기 흡입 여부를 선택해 주세요.');
         fireDamageScope = _mapFireDamageScope(scopeRaw);
