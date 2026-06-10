@@ -559,9 +559,7 @@ class _MyPageState extends State<MyPage> {
                                   ),
                                 ),
                               ),
-                              onPressed: _isLoadingTokens
-                                  ? null
-                                  : _printWithdrawTestTokens,
+                              onPressed: () {},
                               child: _isLoadingTokens
                                   ? const SizedBox(
                                       width: 24,

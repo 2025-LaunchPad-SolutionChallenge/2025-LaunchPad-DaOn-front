@@ -6,21 +6,27 @@ import 'package:characters/characters.dart';
 
 /// 1. 체크리스트 데이터를 관리할 모델 클래스
 class ChecklistItemModel {
-  final String id;
-  final bool isAiGenerated; // AI 생성 여부
+  final int checklistItemId;
+  final bool isAiGenerated;
   String title;
   String? memo;
   List<String> imageUrls;
   bool isChecked;
+  final int priority;
+  final String? checklistDate;
 
   ChecklistItemModel({
-    required this.id,
+    required this.checklistItemId,
     required this.isAiGenerated,
     required this.title,
     this.memo,
     this.imageUrls = const [],
     this.isChecked = false,
+    this.priority = 2,
+    this.checklistDate,
   });
+
+  String get id => checklistItemId.toString();
 }
 
 /// 2. 개별 체크리스트 아이템 위젯

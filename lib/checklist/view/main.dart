@@ -34,6 +34,11 @@ class _ChecklistPageState extends State<ChecklistPage> {
   double _completionRate = 0.0;
   int? _userDisasterId;
 
+  final Set<int> _pendingStatusIds = {};
+
+  static String _fmtDate(DateTime date) =>
+      '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+
   @override
   void initState() {
     super.initState();
@@ -41,27 +46,25 @@ class _ChecklistPageState extends State<ChecklistPage> {
   }
 
   Future<void> _loadChecklist() async {
-    if (mounted)
+    if (mounted) {
       setState(() {
         _isLoading = true;
         _errorMessage = null;
       });
+    }
     try {
       if (_userDisasterId == null) {
         final summary = await _homeApi.getHomeSummary();
         _userDisasterId = summary.userDisasterId;
       }
-      final items = await _checklistApi.getChecklistItems(
+      final result = await _checklistApi.fetchChecklist(
         _userDisasterId!,
         _currentSelectedDate,
       );
       if (mounted) {
-        final checked = items.where((i) => i.isChecked).length;
         setState(() {
-          _items = items;
-          _completionRate = items.isEmpty
-              ? 0.0
-              : (checked / items.length) * 100;
+          _items = result.items;
+          _completionRate = result.completionRate;
           _isLoading = false;
           _errorMessage = null;
         });
@@ -76,26 +79,144 @@ class _ChecklistPageState extends State<ChecklistPage> {
     }
   }
 
-  void _showBottomSheet() {
+  void _showAddPopup() {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
       ),
-      builder: (context) => const ItemBottomPopupWidget(),
+      builder: (ctx) => AddBottomPopupWidget(
+        onSubmit: (title) {
+          Navigator.pop(ctx);
+          _addItem(title);
+        },
+      ),
     );
   }
 
-  void _showBottomSheet22() {
+  Future<void> _addItem(String title) async {
+    if (_userDisasterId == null) return;
+    try {
+      await _checklistApi.addChecklistItem(
+        userDisasterId: _userDisasterId!,
+        title: title,
+        checklistDate: _fmtDate(_currentSelectedDate),
+      );
+      _loadChecklist();
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('항목 추가에 실패했습니다.')),
+        );
+      }
+    }
+  }
+
+  void _showEditPopup(ChecklistItemModel item) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
       ),
-      builder: (context) => const AddBottomPopupWidget(),
+      builder: (ctx) => AddBottomPopupWidget(
+        initialTitle: item.title,
+        onSubmit: (title) {
+          Navigator.pop(ctx);
+          _editItem(item, title);
+        },
+      ),
     );
+  }
+
+  Future<void> _editItem(ChecklistItemModel item, String title) async {
+    if (_userDisasterId == null) return;
+    final dateStr = item.checklistDate ?? _fmtDate(_currentSelectedDate);
+    try {
+      await _checklistApi.editChecklistItem(
+        userDisasterId: _userDisasterId!,
+        checklistItemId: item.checklistItemId,
+        title: title,
+        checklistDate: dateStr,
+        isCompleted: item.isChecked,
+        priority: item.priority,
+      );
+      _loadChecklist();
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('항목 수정에 실패했습니다.')),
+        );
+      }
+    }
+  }
+
+  Future<void> _deleteItem(ChecklistItemModel item) async {
+    if (_userDisasterId == null) return;
+    try {
+      await _checklistApi.deleteChecklistItem(
+        userDisasterId: _userDisasterId!,
+        checklistItemId: item.checklistItemId,
+      );
+      _loadChecklist();
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('항목 삭제에 실패했습니다.')),
+        );
+      }
+    }
+  }
+
+  void _showItemOptionsBottomSheet(ChecklistItemModel selectedItem) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
+      ),
+      builder: (ctx) => ItemBottomPopupWidget(
+        item: selectedItem,
+        onEdit: () {
+          Navigator.pop(ctx);
+          _showEditPopup(selectedItem);
+        },
+        onDelete: () {
+          Navigator.pop(ctx);
+          _deleteItem(selectedItem);
+        },
+      ),
+    );
+  }
+
+  Future<void> _onCheckChanged(int index, bool newValue) async {
+    final item = _items[index];
+    final itemId = item.checklistItemId;
+    if (_pendingStatusIds.contains(itemId)) return;
+    if (_userDisasterId == null) return;
+
+    setState(() {
+      _pendingStatusIds.add(itemId);
+      _items[index].isChecked = newValue;
+    });
+    try {
+      await _checklistApi.updateChecklistStatus(
+        userDisasterId: _userDisasterId!,
+        checklistItemId: itemId,
+        isCompleted: newValue,
+      );
+      if (mounted) await _loadChecklist();
+    } catch (_) {
+      if (mounted) {
+        setState(() => _items[index].isChecked = !newValue);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('상태 변경에 실패했습니다.')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _pendingStatusIds.remove(itemId));
+    }
   }
 
   Future<void> _navigateToNewPage() async {
@@ -109,17 +230,6 @@ class _ChecklistPageState extends State<ChecklistPage> {
     if (result == true) {
       _loadChecklist();
     }
-  }
-
-  void _showItemOptionsBottomSheet(ChecklistItemModel selectedItem) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
-      ),
-      builder: (context) => const ItemBottomPopupWidget(),
-    );
   }
 
   Widget _buildSectionTitle(String title) {
@@ -237,7 +347,8 @@ class _ChecklistPageState extends State<ChecklistPage> {
                     if (_selectedIndex == 0)
                       PictureButton(
                         text: '생성하기',
-                        onPressed: () {},
+                        onPressed:
+                            _userDisasterId != null ? _showAddPopup : null,
                         width: 100.0,
                         height: 33.0,
                       ),
@@ -332,7 +443,7 @@ class _ChecklistPageState extends State<ChecklistPage> {
         return ChecklistItemWidget(
           item: _items[index],
           onCheckChanged: (bool newValue) {
-            setState(() => _items[index].isChecked = newValue);
+            _onCheckChanged(index, newValue);
           },
           onOptionsTap: _showItemOptionsBottomSheet,
         );
