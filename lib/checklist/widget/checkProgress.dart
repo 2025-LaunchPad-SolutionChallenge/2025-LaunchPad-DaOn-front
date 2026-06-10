@@ -17,6 +17,7 @@ class _ChecklistProgessBarState extends State<ChecklistProgessBar> {
   @override
   Widget build(BuildContext context) {
     final double progress = widget.currentCheck / 100;
+    final String progressMain = (progress * 100).toStringAsFixed(2);
 
     return Column(
       children: [
@@ -25,7 +26,7 @@ class _ChecklistProgessBarState extends State<ChecklistProgessBar> {
             Text('체크리스트 달성률', style: FontStyles.semi16),
             SizedBox(width: 6.0),
             Text(
-              '${widget.currentCheck}%',
+              '${progressMain}%',
               style: FontStyles.med15.copyWith(color: ColorStyles.grey1),
             ),
           ],

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:project_daon/common/widget/lineTextField.dart';
 import 'package:project_daon/common/widget/textFieldWidget.dart';
 import 'package:project_daon/ui/fontStyles.dart';
 import 'roundToggleButton.dart';
@@ -10,14 +9,20 @@ class ExpandSectionWidget extends StatefulWidget {
   final String hintText;
   final double hintSize;
   final bool isTextInput;
+  final ValueChanged<String?>? onChanged;
+  final String? selectedValue;
+  final TextEditingController? controller;
 
-  const ExpandSectionWidget({
+  ExpandSectionWidget({
     super.key,
     required this.title,
     this.options = const ['테스트', '테스트'],
     this.hintText = '텍스트 입력',
     this.hintSize = 16.0,
     this.isTextInput = false,
+    this.onChanged,
+    this.selectedValue,
+    this.controller,
   });
 
   @override
@@ -25,7 +30,21 @@ class ExpandSectionWidget extends StatefulWidget {
 }
 
 class _ExpandSectionWidgetState extends State<ExpandSectionWidget> {
-  String? _selectedOption; // 아무것도 선택되지 않은 상태를 위해 null 허용
+  String? _selectedOption;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedOption = widget.selectedValue;
+  }
+
+  @override
+  void didUpdateWidget(covariant ExpandSectionWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.selectedValue != oldWidget.selectedValue) {
+      setState(() => _selectedOption = widget.selectedValue);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -56,13 +75,9 @@ class _ExpandSectionWidgetState extends State<ExpandSectionWidget> {
                     title: option,
                     isSelected: _selectedOption == option,
                     onTap: () {
-                      setState(() {
-                        if (_selectedOption == option) {
-                          _selectedOption = null;
-                        } else {
-                          _selectedOption = option;
-                        }
-                      });
+                      final next = _selectedOption == option ? null : option;
+                      setState(() => _selectedOption = next);
+                      widget.onChanged?.call(next);
                     },
                   );
                 }).toList(),
@@ -71,10 +86,10 @@ class _ExpandSectionWidgetState extends State<ExpandSectionWidget> {
           ] else ...[
             TextFieldWidget(
               hintText: widget.hintText,
+              controller: widget.controller,
               onChanged: (value) {
-                setState(() {
-                  _selectedOption = value;
-                });
+                setState(() => _selectedOption = value);
+                widget.onChanged?.call(value);
               },
               hintSize: widget.hintSize,
             ),
