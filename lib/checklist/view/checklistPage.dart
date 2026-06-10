@@ -226,13 +226,18 @@ class _ChecklistPageState extends State<ChecklistPage> {
   }
 
   void _showBottomSheet() {
+    final dummy = ChecklistItemModel(checklistItemId: 0, isAiGenerated: false, title: '');
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
       ),
-      builder: (context) => const ItemBottomPopupWidget(),
+      builder: (ctx) => ItemBottomPopupWidget(
+        item: dummy,
+        onEdit: () => Navigator.pop(ctx),
+        onDelete: () => Navigator.pop(ctx),
+      ),
     );
   }
 
@@ -243,7 +248,9 @@ class _ChecklistPageState extends State<ChecklistPage> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
       ),
-      builder: (context) => const AddBottomPopupWidget(),
+      builder: (ctx) => AddBottomPopupWidget(
+        onSubmit: (_) => Navigator.pop(ctx),
+      ),
     );
   }
 
@@ -276,8 +283,32 @@ class _ChecklistPageState extends State<ChecklistPage> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
       ),
-      builder: (context) => const ItemBottomPopupWidget(),
+      builder: (ctx) => ItemBottomPopupWidget(
+        item: selectedItem,
+        onEdit: () => Navigator.pop(ctx),
+        onDelete: () {
+          Navigator.pop(ctx);
+          _deleteItemById(selectedItem.checklistItemId);
+        },
+      ),
     );
+  }
+
+  Future<void> _deleteItemById(int checklistItemId) async {
+    final disasterId = _userDisasterId;
+    if (disasterId == null) return;
+    try {
+      await _dio.delete(
+        '/api/v1/disasters/$disasterId/checklist/$checklistItemId',
+      );
+      _loadChecklist();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('항목 삭제에 실패했습니다.')),
+        );
+      }
+    }
   }
 
   Widget _buildChecklistTab() {
@@ -443,7 +474,7 @@ class _ChecklistItemView {
 
   ChecklistItemModel toWidgetModel() {
     return ChecklistItemModel(
-      id: checklistItemId?.toString() ?? '',
+      checklistItemId: checklistItemId ?? 0,
       title: title,
       isChecked: isCompleted,
       isAiGenerated: isAiGenerated,

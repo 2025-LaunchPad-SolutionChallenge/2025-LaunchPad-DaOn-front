@@ -13,14 +13,14 @@ class PictureButton extends StatelessWidget {
     Key? key,
     required this.text,
     this.onPressed,
-    this.width, // 명시하지 않으면 null
+    this.width = 100.0,
     this.height = 57.0,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: width ?? double.infinity,
+    return Container(
+      width: width,
       height: height,
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
@@ -39,8 +39,8 @@ class PictureButton extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(text, style: FontStyles.med14),
-            SizedBox(width: 6.0),
-            SvgPicture.asset('assets/checklist/camera_alt.svg'),
+            // SizedBox(width: 6.0),
+            // SvgPicture.asset('assets/checklist/camera_alt.svg'),
           ],
         ),
       ),

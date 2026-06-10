@@ -1,12 +1,39 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:project_daon/common/widget/gradientButton.dart';
 import 'package:project_daon/common/widget/lineTextField.dart';
 import 'package:project_daon/ui/colorStyles.dart';
 import 'package:project_daon/ui/fontStyles.dart';
 
-class AddBottomPopupWidget extends StatelessWidget {
-  const AddBottomPopupWidget({super.key});
+class AddBottomPopupWidget extends StatefulWidget {
+  final String? initialTitle;
+  final void Function(String title) onSubmit;
+
+  const AddBottomPopupWidget({
+    super.key,
+    this.initialTitle,
+    required this.onSubmit,
+  });
+
+  @override
+  State<AddBottomPopupWidget> createState() => _AddBottomPopupWidgetState();
+}
+
+class _AddBottomPopupWidgetState extends State<AddBottomPopupWidget> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.initialTitle ?? '');
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  bool get _isEditMode => widget.initialTitle != null;
 
   @override
   Widget build(BuildContext context) {
@@ -39,13 +66,25 @@ class AddBottomPopupWidget extends StatelessWidget {
             ),
             const SizedBox(height: 16.0),
             Text(
-              '체크리스트 추가',
+              _isEditMode ? '체크리스트 편집' : '체크리스트 추가',
               style: FontStyles.semi20.copyWith(color: ColorStyles.black1),
             ),
             const SizedBox(height: 4.0),
-            LineTextField(hintText: '원하는 체크리스트 내용을 입력해주세요!', maxLength: 20),
+            LineTextField(
+              hintText: '원하는 체크리스트 내용을 입력해주세요!',
+              maxLength: 20,
+              controller: _controller,
+            ),
             const SizedBox(height: 40.0),
-            GradientButton(text: '추가하기', onPressed: () {}),
+            GradientButton(
+              text: _isEditMode ? '수정하기' : '추가하기',
+              onPressed: () {
+                final title = _controller.text.trim();
+                if (title.isNotEmpty) {
+                  widget.onSubmit(title);
+                }
+              },
+            ),
             const SizedBox(height: 10.0),
           ],
         ),

@@ -1,39 +1,49 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:project_daon/checklist/model/attachment_model.dart';
 import 'package:project_daon/ui/colorStyles.dart';
 import 'package:project_daon/ui/fontStyles.dart';
-import 'package:characters/characters.dart';
 
-/// 1. 체크리스트 데이터를 관리할 모델 클래스
 class ChecklistItemModel {
-  final String id;
-  final bool isAiGenerated; // AI 생성 여부
+  final int checklistItemId;
+  final bool isAiGenerated;
   String title;
   String? memo;
   List<String> imageUrls;
   bool isChecked;
+  final int priority;
+  final String? checklistDate;
+  final Map<String, int>? attachmentSummary;
 
   ChecklistItemModel({
-    required this.id,
+    required this.checklistItemId,
     required this.isAiGenerated,
     required this.title,
     this.memo,
     this.imageUrls = const [],
     this.isChecked = false,
+    this.priority = 2,
+    this.checklistDate,
+    this.attachmentSummary,
   });
+
+  String get id => checklistItemId.toString();
 }
 
-/// 2. 개별 체크리스트 아이템 위젯
 class ChecklistItemWidget extends StatefulWidget {
   final ChecklistItemModel item;
   final Function(ChecklistItemModel) onOptionsTap;
   final ValueChanged<bool> onCheckChanged;
+  final Future<List<AttachmentModel>> Function()? onFetchAttachments;
+  final void Function(AttachmentModel)? onAttachmentLongPress;
 
   const ChecklistItemWidget({
     super.key,
     required this.item,
     required this.onOptionsTap,
     required this.onCheckChanged,
+    this.onFetchAttachments,
+    this.onAttachmentLongPress,
   });
 
   @override
@@ -42,22 +52,44 @@ class ChecklistItemWidget extends StatefulWidget {
 
 class _ChecklistItemWidgetState extends State<ChecklistItemWidget> {
   bool _isExpanded = false;
+  List<AttachmentModel>? _attachments;
+  bool _isFetchingAttachments = false;
 
   bool get _hasDetail {
-    final hasMemo =
-        widget.item.memo != null && widget.item.memo!.trim().isNotEmpty;
-
-    final hasFiles = widget.item.imageUrls.isNotEmpty;
-
-    return hasMemo || hasFiles;
+    final s = widget.item.attachmentSummary;
+    if (s != null) {
+      return (s['MEMO'] ?? 0) > 0 ||
+          (s['IMAGE'] ?? 0) > 0 ||
+          (s['FILE'] ?? 0) > 0;
+    }
+    return (widget.item.memo?.trim().isNotEmpty ?? false) ||
+        widget.item.imageUrls.isNotEmpty;
   }
 
   void _toggleExpanded() {
     if (!_hasDetail) return;
+    setState(() => _isExpanded = !_isExpanded);
+    if (_isExpanded &&
+        _attachments == null &&
+        !_isFetchingAttachments &&
+        widget.onFetchAttachments != null) {
+      _fetchAttachments();
+    }
+  }
 
-    setState(() {
-      _isExpanded = !_isExpanded;
-    });
+  Future<void> _fetchAttachments() async {
+    setState(() => _isFetchingAttachments = true);
+    try {
+      final result = await widget.onFetchAttachments!();
+      if (mounted) {
+        setState(() {
+          _attachments = result;
+          _isFetchingAttachments = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _isFetchingAttachments = false);
+    }
   }
 
   Color get _titleColor {
@@ -76,7 +108,6 @@ class _ChecklistItemWidgetState extends State<ChecklistItemWidget> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 1. 체크박스
               Padding(
                 padding: const EdgeInsets.only(top: 4.0),
                 child: GestureDetector(
@@ -96,10 +127,7 @@ class _ChecklistItemWidgetState extends State<ChecklistItemWidget> {
                   ),
                 ),
               ),
-
               const SizedBox(width: 8),
-
-              // 2. 가운데 영역: AI 아이콘 + 텍스트
               Expanded(
                 child: GestureDetector(
                   behavior: _hasDetail
@@ -120,7 +148,6 @@ class _ChecklistItemWidgetState extends State<ChecklistItemWidget> {
                         ),
                         const SizedBox(width: 8),
                       ],
-
                       Expanded(
                         child: _WordWrapText(
                           text: widget.item.title,
@@ -134,10 +161,7 @@ class _ChecklistItemWidgetState extends State<ChecklistItemWidget> {
                   ),
                 ),
               ),
-
               const SizedBox(width: 16),
-
-              // 3. 더보기 버튼 (...)
               SizedBox(
                 width: 28,
                 height: 28,
@@ -151,8 +175,6 @@ class _ChecklistItemWidgetState extends State<ChecklistItemWidget> {
               ),
             ],
           ),
-
-          // 4. 펼쳐졌을 때 보이는 상세 영역
           AnimatedSize(
             duration: const Duration(milliseconds: 200),
             curve: Curves.easeInOut,
@@ -164,21 +186,7 @@ class _ChecklistItemWidgetState extends State<ChecklistItemWidget> {
                       bottom: 4.0,
                       right: 34.0,
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (widget.item.memo != null &&
-                            widget.item.memo!.trim().isNotEmpty)
-                          _buildMemoArea(),
-
-                        if (widget.item.memo != null &&
-                            widget.item.memo!.trim().isNotEmpty &&
-                            widget.item.imageUrls.isNotEmpty)
-                          const SizedBox(height: 12),
-
-                        if (widget.item.imageUrls.isNotEmpty) _buildFileArea(),
-                      ],
-                    ),
+                    child: _buildExpandedArea(),
                   )
                 : const SizedBox.shrink(),
           ),
@@ -187,7 +195,155 @@ class _ChecklistItemWidgetState extends State<ChecklistItemWidget> {
     );
   }
 
-  Widget _buildMemoArea() {
+  Widget _buildExpandedArea() {
+    if (_isFetchingAttachments) {
+      return const Padding(
+        padding: EdgeInsets.only(top: 4.0),
+        child: SizedBox(
+          height: 20,
+          width: 20,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+      );
+    }
+
+    if (_attachments != null) {
+      final memos = _attachments!
+          .where((a) => a.attachmentType == 'MEMO')
+          .toList();
+      final files = _attachments!
+          .where((a) => a.attachmentType != 'MEMO')
+          .toList();
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (memos.isNotEmpty) _buildFetchedMemoArea(memos.first),
+          if (memos.isNotEmpty && files.isNotEmpty) const SizedBox(height: 12),
+          if (files.isNotEmpty) _buildFetchedFileArea(files),
+        ],
+      );
+    }
+
+    // legacy fallback
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (widget.item.memo != null && widget.item.memo!.trim().isNotEmpty)
+          _buildLegacyMemoArea(),
+        if (widget.item.memo != null &&
+            widget.item.memo!.trim().isNotEmpty &&
+            widget.item.imageUrls.isNotEmpty)
+          const SizedBox(height: 12),
+        if (widget.item.imageUrls.isNotEmpty) _buildLegacyFileArea(),
+      ],
+    );
+  }
+
+  Widget _buildFetchedMemoArea(AttachmentModel memo) {
+    return GestureDetector(
+      onLongPress: widget.onAttachmentLongPress != null
+          ? () => widget.onAttachmentLongPress!(memo)
+          : null,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildTag('Text'),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              parseMemoTitle(memo.content),
+              softWrap: true,
+              style: FontStyles.med14.copyWith(
+                color: ColorStyles.black2,
+                height: 1.45,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFetchedFileArea(List<AttachmentModel> files) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildTag('File'),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: files.take(3).map((f) {
+              return GestureDetector(
+                onLongPress: widget.onAttachmentLongPress != null
+                    ? () => widget.onAttachmentLongPress!(f)
+                    : null,
+                child: _buildFilePreview(f),
+              );
+            }).toList(),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFilePreview(AttachmentModel attachment) {
+    if (attachment.attachmentType == 'IMAGE') {
+      final url = attachment.thumbnailUrl ?? attachment.fileUrl;
+      if (url != null) {
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: Image.network(
+            url,
+            width: 88,
+            height: 88,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) =>
+                _fileNameBox(attachment.originalFileName),
+          ),
+        );
+      }
+      return _fileNameBox(attachment.originalFileName);
+    }
+    return _buildFileThumbnailBox(attachment);
+  }
+
+  Widget _buildFileThumbnailBox(AttachmentModel attachment) {
+    final ext = (attachment.originalFileName ?? '')
+        .split('.')
+        .last
+        .toLowerCase();
+    final svgAsset =
+        ['doc', 'docx', 'txt', 'xls', 'xlsx', 'ppt', 'pptx'].contains(ext)
+        ? 'assets/checklist/doc.png'
+        : 'assets/checklist/pdf.png';
+    return Container(
+      width: 88,
+      height: 88,
+      child: Center(child: Image(image: AssetImage(svgAsset))),
+    );
+  }
+
+  Widget _fileNameBox(String? name) {
+    return Container(
+      width: 88,
+      height: 88,
+      decoration: BoxDecoration(
+        color: ColorStyles.secon5,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: const Center(
+        child: Icon(
+          Icons.image_not_supported_outlined,
+          color: ColorStyles.black2,
+          size: 36,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLegacyMemoArea() {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -207,7 +363,7 @@ class _ChecklistItemWidgetState extends State<ChecklistItemWidget> {
     );
   }
 
-  Widget _buildFileArea() {
+  Widget _buildLegacyFileArea() {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -268,7 +424,6 @@ class _WordWrapText extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final words = text.trim().split(RegExp(r'\s+'));
-
     return Wrap(
       spacing: 3,
       runSpacing: 2,
