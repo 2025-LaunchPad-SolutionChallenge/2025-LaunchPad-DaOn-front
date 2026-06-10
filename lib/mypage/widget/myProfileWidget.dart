@@ -58,7 +58,7 @@ class MyProfileWidget extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      height: 210.0,
+      height: 225.0,
       alignment: Alignment.center,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,

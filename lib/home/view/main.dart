@@ -46,13 +46,17 @@ class HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    SelectedDisasterService.instance.selectedId.addListener(_onGlobalDisasterChanged);
+    SelectedDisasterService.instance.selectedId.addListener(
+      _onGlobalDisasterChanged,
+    );
     _loadAll();
   }
 
   @override
   void dispose() {
-    SelectedDisasterService.instance.selectedId.removeListener(_onGlobalDisasterChanged);
+    SelectedDisasterService.instance.selectedId.removeListener(
+      _onGlobalDisasterChanged,
+    );
     super.dispose();
   }
 
@@ -64,7 +68,9 @@ class HomePageState extends State<HomePage> {
       final match = _disasters.where((d) => d.userDisasterId == id);
       setState(() {
         _selectedDisasterId = id;
-        _selectedProgress = match.isNotEmpty ? match.first.recoveryProgress : null;
+        _selectedProgress = match.isNotEmpty
+            ? match.first.recoveryProgress
+            : null;
         _stage = null;
       });
       _loadStage(id);
@@ -123,7 +129,8 @@ class HomePageState extends State<HomePage> {
     final savedId = svc.selectedId.value;
     int? activeId;
 
-    if (savedId != null && disasterList.any((d) => d.userDisasterId == savedId)) {
+    if (savedId != null &&
+        disasterList.any((d) => d.userDisasterId == savedId)) {
       activeId = savedId;
     } else {
       activeId = summary?.userDisasterId;
@@ -378,7 +385,7 @@ class HomePageState extends State<HomePage> {
     final double bottomSheetHeight = screenHeight * _minSheetSize;
 
     final double progress =
-        (_selectedProgress ?? _summary?.recoveryProgress ?? 0) / 100;
+        (_selectedProgress ?? _summary?.recoveryProgress ?? 0);
 
     final displayTasks = _isExpanded && _fullTasksFetched
         ? _fullTasks
@@ -416,8 +423,13 @@ class HomePageState extends State<HomePage> {
                       onIndexChanged: (index) {
                         if (index < 0 || index >= _disasters.length) return;
                         final disaster = _disasters[index];
-                        if (kDebugMode) debugPrint('[홈] 드롭다운 선택: userDisasterId=${disaster.userDisasterId}');
-                        SelectedDisasterService.instance.select(disaster.userDisasterId);
+                        if (kDebugMode)
+                          debugPrint(
+                            '[홈] 드롭다운 선택: userDisasterId=${disaster.userDisasterId}',
+                          );
+                        SelectedDisasterService.instance.select(
+                          disaster.userDisasterId,
+                        );
                         setState(() {
                           _selectedDisasterId = disaster.userDisasterId;
                           _selectedProgress = disaster.recoveryProgress;

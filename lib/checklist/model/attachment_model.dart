@@ -68,3 +68,69 @@ String parseMemoBody(String? content) {
 String buildMemoContent(String title, String body) => '## $title\n$body';
 
 bool isOver10Mb(int sizeBytes) => sizeBytes > 10 * 1024 * 1024;
+
+class ChecklistArchiveGroup {
+  final int checklistItemId;
+  final String checklistItemTitle;
+  final AttachmentModel? memo;
+  final List<AttachmentModel> images;
+  final List<AttachmentModel> files;
+
+  const ChecklistArchiveGroup({
+    required this.checklistItemId,
+    required this.checklistItemTitle,
+    this.memo,
+    this.images = const [],
+    this.files = const [],
+  });
+}
+
+List<ChecklistArchiveGroup> groupArchiveItemsByChecklistItem(
+  List<AttachmentModel> items,
+) {
+  final Map<int, _MutableArchiveGroup> map = {};
+  final List<int> order = [];
+
+  for (final item in items) {
+    final id = item.checklistItemId;
+    if (id == null) continue;
+    if (!map.containsKey(id)) {
+      order.add(id);
+      map[id] = _MutableArchiveGroup(
+        checklistItemId: id,
+        checklistItemTitle: item.checklistItemTitle ?? '체크리스트 항목',
+      );
+    }
+    final g = map[id]!;
+    if (item.attachmentType == 'MEMO') {
+      g.memo = item;
+    } else if (item.attachmentType == 'IMAGE') {
+      g.images.add(item);
+    } else if (item.attachmentType == 'FILE') {
+      g.files.add(item);
+    }
+  }
+
+  return order.map((id) => map[id]!.toGroup()).toList();
+}
+
+class _MutableArchiveGroup {
+  final int checklistItemId;
+  final String checklistItemTitle;
+  AttachmentModel? memo;
+  final List<AttachmentModel> images = [];
+  final List<AttachmentModel> files = [];
+
+  _MutableArchiveGroup({
+    required this.checklistItemId,
+    required this.checklistItemTitle,
+  });
+
+  ChecklistArchiveGroup toGroup() => ChecklistArchiveGroup(
+    checklistItemId: checklistItemId,
+    checklistItemTitle: checklistItemTitle,
+    memo: memo,
+    images: List.unmodifiable(images),
+    files: List.unmodifiable(files),
+  );
+}

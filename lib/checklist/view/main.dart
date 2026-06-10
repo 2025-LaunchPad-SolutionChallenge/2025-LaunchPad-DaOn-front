@@ -1,5 +1,8 @@
+import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:media_store_plus/media_store_plus.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:project_daon/checklist/api/checklist_api.dart';
 import 'package:project_daon/checklist/model/attachment_model.dart';
 import 'package:project_daon/checklist/view/checklistAiAddPage.dart';
@@ -14,6 +17,7 @@ import 'package:project_daon/checklist/widget/checklistWeekWidget.dart';
 import 'package:project_daon/checklist/widget/itemBottomPopup.dart';
 import 'package:project_daon/checklist/widget/memoBottomPopup.dart';
 import 'package:project_daon/checklist/widget/pictureButton.dart';
+import 'package:project_daon/common/widget/roundToggleButton.dart';
 import 'package:project_daon/common/widget/tapBarWidget.dart';
 import 'package:project_daon/core/service/selected_disaster_service.dart';
 import 'package:project_daon/home/api/homeApi.dart';
@@ -42,6 +46,7 @@ class _ChecklistPageState extends State<ChecklistPage> {
 
   List<AttachmentModel> _archiveItems = [];
   bool _isArchiveLoading = false;
+  String _archiveFilterType = 'ALL';
 
   final Set<int> _pendingStatusIds = {};
 
@@ -51,8 +56,9 @@ class _ChecklistPageState extends State<ChecklistPage> {
   @override
   void initState() {
     super.initState();
-    SelectedDisasterService.instance.selectedId
-        .addListener(_onGlobalDisasterChanged);
+    SelectedDisasterService.instance.selectedId.addListener(
+      _onGlobalDisasterChanged,
+    );
     final svcId = SelectedDisasterService.instance.selectedId.value;
     if (svcId != null) _userDisasterId = svcId;
     _loadChecklist().whenComplete(() {
@@ -62,8 +68,9 @@ class _ChecklistPageState extends State<ChecklistPage> {
 
   @override
   void dispose() {
-    SelectedDisasterService.instance.selectedId
-        .removeListener(_onGlobalDisasterChanged);
+    SelectedDisasterService.instance.selectedId.removeListener(
+      _onGlobalDisasterChanged,
+    );
     super.dispose();
   }
 
@@ -122,10 +129,15 @@ class _ChecklistPageState extends State<ChecklistPage> {
     if (_userDisasterId == null || !mounted) return;
     setState(() => _isArchiveLoading = true);
     try {
-      final items = await _checklistApi.fetchArchive(
+      var items = await _checklistApi.fetchArchive(
         _userDisasterId!,
-        type: 'ALL',
+        type: _archiveFilterType,
         date: _fmtDate(_currentSelectedDate),
+      );
+      // MEMO 항목에 content가 없으면 체크리스트 상세에서 보강
+      items = await _checklistApi.enrichArchiveMemoContent(
+        _userDisasterId!,
+        items,
       );
       if (mounted) {
         setState(() {
@@ -172,9 +184,9 @@ class _ChecklistPageState extends State<ChecklistPage> {
       _loadChecklist();
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('항목 추가에 실패했습니다.')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('항목 추가에 실패했습니다.')));
       }
     }
   }
@@ -211,9 +223,9 @@ class _ChecklistPageState extends State<ChecklistPage> {
       _loadChecklist();
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('항목 수정에 실패했습니다.')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('항목 수정에 실패했습니다.')));
       }
     }
   }
@@ -228,9 +240,9 @@ class _ChecklistPageState extends State<ChecklistPage> {
       _loadChecklist();
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('항목 삭제에 실패했습니다.')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('항목 삭제에 실패했습니다.')));
       }
     }
   }
@@ -280,9 +292,9 @@ class _ChecklistPageState extends State<ChecklistPage> {
     } catch (_) {
       if (mounted) {
         setState(() => _items[index].isChecked = !newValue);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('상태 변경에 실패했습니다.')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('상태 변경에 실패했습니다.')));
       }
     } finally {
       if (mounted) setState(() => _pendingStatusIds.remove(itemId));
@@ -292,6 +304,28 @@ class _ChecklistPageState extends State<ChecklistPage> {
   // ── 메모 첨부 ─────────────────────────────────────────────────
 
   void _showMemoAddPopup(ChecklistItemModel selectedItem) {
+    final hasMemo = (selectedItem.attachmentSummary?['MEMO'] ?? 0) > 0;
+    if (hasMemo) {
+      AttachmentModel? existingMemo;
+      for (final a in _archiveItems) {
+        if (a.attachmentType == 'MEMO' &&
+            a.checklistItemId == selectedItem.checklistItemId) {
+          existingMemo = a;
+          break;
+        }
+      }
+      if (existingMemo != null) {
+        _showMemoEditPopup(existingMemo);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('이미 메모가 있습니다. 기존 메모를 수정해 주세요.')),
+          );
+        }
+      }
+      return;
+    }
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -311,6 +345,7 @@ class _ChecklistPageState extends State<ChecklistPage> {
 
   Future<void> _addMemoAttachment(int checklistItemId, String content) async {
     if (_userDisasterId == null) return;
+    if (kDebugMode) debugPrint('[메모 저장 content] $content');
     try {
       await _checklistApi.addAttachment(_userDisasterId!, checklistItemId, {
         'attachmentType': 'MEMO',
@@ -324,9 +359,9 @@ class _ChecklistPageState extends State<ChecklistPage> {
       await _refreshAll();
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('메모 추가에 실패했습니다.')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('메모 추가에 실패했습니다.')));
       }
     }
   }
@@ -367,6 +402,10 @@ class _ChecklistPageState extends State<ChecklistPage> {
           } else {
             _showFileNameEditPopup(attachment);
           }
+        },
+        onDownload: () {
+          Navigator.pop(ctx);
+          _downloadAttachment(attachment);
         },
         onDelete: () {
           Navigator.pop(ctx);
@@ -418,9 +457,9 @@ class _ChecklistPageState extends State<ChecklistPage> {
       await _refreshAll();
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('메모 수정에 실패했습니다.')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('메모 수정에 실패했습니다.')));
       }
     }
   }
@@ -464,9 +503,9 @@ class _ChecklistPageState extends State<ChecklistPage> {
       await _refreshAll();
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('파일 이름 수정에 실패했습니다.')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('파일 이름 수정에 실패했습니다.')));
       }
     }
   }
@@ -482,9 +521,67 @@ class _ChecklistPageState extends State<ChecklistPage> {
       await _refreshAll();
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('첨부 삭제에 실패했습니다.')),
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('첨부 삭제에 실패했습니다.')));
+      }
+    }
+  }
+
+  Future<void> _downloadAttachment(AttachmentModel attachment) async {
+    try {
+      if (kDebugMode) {
+        debugPrint(
+          '[다운로드] 시작 attachmentId=${attachment.attachmentId} '
+          'type=${attachment.attachmentType} '
+          'checklistItemId=${attachment.checklistItemId}',
         );
+      }
+      final tempDir = await getTemporaryDirectory();
+      final tempPath = await _checklistApi.downloadAttachmentToFile(
+        attachment,
+        tempDir.path,
+      );
+      if (kDebugMode) debugPrint('[다운로드] 임시 저장 → $tempPath');
+
+      bool savedToPublic = false;
+
+      if (Platform.isAndroid) {
+        try {
+          MediaStore.appFolder = 'DAON';
+          await MediaStore.ensureInitialized();
+          final store = MediaStore();
+          await store.saveFile(
+            tempFilePath: tempPath,
+            dirType: DirType.download,
+            dirName: DirName.download,
+          );
+          savedToPublic = true;
+          if (kDebugMode) debugPrint('[다운로드] MediaStore 완료 (Downloads/DAON/)');
+        } catch (mediaStoreError) {
+          if (kDebugMode) {
+            debugPrint('[다운로드] MediaStore 실패: $mediaStoreError');
+          }
+        }
+      }
+
+      if (!mounted) return;
+      if (savedToPublic) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('다운로드가 완료되었습니다.')));
+      } else {
+        if (kDebugMode) debugPrint('[다운로드] 앱 내부 저장소: $tempPath');
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('앱 내부 저장소에 저장되었습니다.')));
+      }
+    } catch (e) {
+      if (kDebugMode) debugPrint('[다운로드] 오류: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('다운로드에 실패했습니다.')));
       }
     }
   }
@@ -514,7 +611,7 @@ class _ChecklistPageState extends State<ChecklistPage> {
       children: [
         Container(
           width: 4,
-          height: 16,
+          height: 14,
           decoration: BoxDecoration(
             color: ColorStyles.main2,
             borderRadius: BorderRadius.circular(2.0),
@@ -524,14 +621,156 @@ class _ChecklistPageState extends State<ChecklistPage> {
         Expanded(
           child: Text(
             title,
-            style: FontStyles.med16.copyWith(color: ColorStyles.black1),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: FontStyles.med14.copyWith(color: ColorStyles.black2),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildAttachmentGrid(List<AttachmentModel> items) {
+  Widget _buildArchiveTab() {
+    if (_isArchiveLoading) {
+      return const Center(
+        child: CircularProgressIndicator(color: ColorStyles.main2),
+      );
+    }
+
+    final groups = groupArchiveItemsByChecklistItem(_archiveItems);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildArchiveFilterBar(),
+        const SizedBox(height: 20.0),
+        Expanded(
+          child: groups.isEmpty
+              ? Center(
+                  child: Text(
+                    '항목이 없습니다.',
+                    style: FontStyles.med14.copyWith(color: ColorStyles.black2),
+                  ),
+                )
+              : ListView.builder(
+                  physics: const BouncingScrollPhysics(),
+                  padding: const EdgeInsets.only(bottom: 120.0),
+                  itemCount: groups.length,
+                  itemBuilder: (context, index) =>
+                      _buildArchiveGroup(groups[index]),
+                ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildArchiveFilterBar() {
+    const filters = ['ALL', 'MEMO', 'IMAGE', 'FILE'];
+    const labels = {'ALL': '전체', 'MEMO': '메모', 'IMAGE': '사진', 'FILE': '파일'};
+    return Wrap(
+      spacing: 8.0,
+      runSpacing: 8.0,
+      children: filters.map((f) {
+        return RoundToggleButton(
+          title: labels[f]!,
+          fontSize: 14.0,
+          isSelected: _archiveFilterType == f,
+          onTap: () {
+            if (_archiveFilterType != f) {
+              setState(() => _archiveFilterType = f);
+              _loadArchive();
+            }
+          },
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildArchiveGroup(ChecklistArchiveGroup group) {
+    final allMedia = [...group.images, ...group.files];
+    final hasContent =
+        group.memo != null || group.images.isNotEmpty || group.files.isNotEmpty;
+    if (!hasContent) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 20.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionTitle(group.checklistItemTitle),
+          const SizedBox(height: 16.0),
+          if (group.memo != null) ...[
+            GestureDetector(
+              onLongPress: () => _showAttachmentOptions(group.memo!),
+              child: _buildArchiveMemoTile(group),
+            ),
+            if (allMedia.isNotEmpty) const SizedBox(height: 12.0),
+          ],
+          if (allMedia.isNotEmpty) _buildArchiveMediaGrid(allMedia),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildArchiveMemoTile(ChecklistArchiveGroup group) {
+    final memo = group.memo!;
+    final title = parseMemoTitle(memo.content);
+    final body = parseMemoBody(memo.content);
+
+    if (kDebugMode) {
+      debugPrint('[메모 원본 content] ${memo.content}');
+      debugPrint('[메모 파싱 title] $title');
+      debugPrint('[메모 파싱 body] $body');
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        color: ColorStyles.secon5,
+        borderRadius: BorderRadius.circular(10.0),
+      ),
+      clipBehavior: Clip.hardEdge,
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          tilePadding: const EdgeInsets.symmetric(
+            horizontal: 16.0,
+            vertical: 4.0,
+          ),
+          childrenPadding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 12.0),
+          title: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                group.checklistItemTitle,
+                style: FontStyles.med12.copyWith(color: ColorStyles.main1),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 2),
+              Text(
+                title,
+                style: FontStyles.semi16.copyWith(color: ColorStyles.black2),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+          children: [
+            if (body.trim().isNotEmpty)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  body,
+                  style: FontStyles.med14.copyWith(color: ColorStyles.black2),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildArchiveMediaGrid(List<AttachmentModel> items) {
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -543,118 +782,41 @@ class _ChecklistPageState extends State<ChecklistPage> {
       itemCount: items.length,
       itemBuilder: (context, index) {
         final attachment = items[index];
-        final url = attachment.thumbnailUrl ?? attachment.fileUrl;
         return GestureDetector(
           onLongPress: () => _showAttachmentOptions(attachment),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(8.0),
-            child: url != null
-                ? Image.network(
-                    url,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => _fileNameTile(attachment),
-                  )
-                : _fileNameTile(attachment),
-          ),
+          child: _buildArchiveMediaCell(attachment),
         );
       },
     );
   }
 
-  Widget _fileNameTile(AttachmentModel attachment) {
-    return Container(
-      color: ColorStyles.secon5,
-      padding: const EdgeInsets.all(4),
-      child: Center(
-        child: Text(
-          attachment.originalFileName ?? '파일',
-          overflow: TextOverflow.ellipsis,
-          maxLines: 3,
-          textAlign: TextAlign.center,
-          style: FontStyles.med12.copyWith(color: ColorStyles.black2),
-        ),
-      ),
-    );
+  Widget _buildArchiveMediaCell(AttachmentModel attachment) {
+    if (attachment.attachmentType == 'IMAGE') {
+      final url = attachment.thumbnailUrl ?? attachment.fileUrl;
+      if (url != null) {
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(8.0),
+          child: Image.network(
+            url,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => _buildFileCell(attachment),
+          ),
+        );
+      }
+    }
+    return _buildFileCell(attachment);
   }
 
-  Widget _buildArchiveTab() {
-    if (_isArchiveLoading) {
-      return const Center(
-        child: CircularProgressIndicator(color: ColorStyles.main2),
-      );
-    }
-
-    final memoItems =
-        _archiveItems.where((a) => a.attachmentType == 'MEMO').toList();
-    final fileItems =
-        _archiveItems.where((a) => a.attachmentType != 'MEMO').toList();
-
-    return SingleChildScrollView(
-      physics: const BouncingScrollPhysics(),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (memoItems.isEmpty)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16.0),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(10.0),
-                color: ColorStyles.secon5,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Memo', style: FontStyles.semi16),
-                  const SizedBox(height: 12.0),
-                  Text(
-                    '메모가 없습니다.',
-                    style: FontStyles.med14.copyWith(color: ColorStyles.black2),
-                  ),
-                ],
-              ),
-            )
-          else
-            ...memoItems.map(
-              (memo) => GestureDetector(
-                onLongPress: () => _showAttachmentOptions(memo),
-                child: Container(
-                  width: double.infinity,
-                  margin: const EdgeInsets.only(bottom: 12.0),
-                  padding: const EdgeInsets.all(16.0),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(10.0),
-                    color: ColorStyles.secon5,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        parseMemoTitle(memo.content),
-                        style: FontStyles.semi16,
-                      ),
-                      const SizedBox(height: 12.0),
-                      Text(
-                        parseMemoBody(memo.content),
-                        style: FontStyles.med14.copyWith(
-                          color: ColorStyles.black2,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          if (fileItems.isNotEmpty) ...[
-            const SizedBox(height: 28.0),
-            _buildSectionTitle('All'),
-            const SizedBox(height: 12.0),
-            _buildAttachmentGrid(fileItems),
-          ],
-          const SizedBox(height: 120.0),
-        ],
-      ),
-    );
+  Widget _buildFileCell(AttachmentModel attachment) {
+    final ext = (attachment.originalFileName ?? '')
+        .split('.')
+        .last
+        .toLowerCase();
+    final asset =
+        ['doc', 'docx', 'txt', 'xls', 'xlsx', 'ppt', 'pptx'].contains(ext)
+        ? 'assets/checklist/doc.png'
+        : 'assets/checklist/pdf.png';
+    return Center(child: Image(image: AssetImage(asset)));
   }
 
   Widget _buildChecklistTab() {
@@ -684,9 +846,9 @@ class _ChecklistPageState extends State<ChecklistPage> {
           onFetchAttachments: _userDisasterId == null
               ? null
               : () => _checklistApi.fetchChecklistDetail(
-                    _userDisasterId!,
-                    _items[index].checklistItemId,
-                  ),
+                  _userDisasterId!,
+                  _items[index].checklistItemId,
+                ),
           onAttachmentLongPress: _showAttachmentOptions,
         );
       },
@@ -753,8 +915,9 @@ class _ChecklistPageState extends State<ChecklistPage> {
                     if (_selectedIndex == 0)
                       PictureButton(
                         text: '생성하기',
-                        onPressed:
-                            _userDisasterId != null ? _showAddPopup : null,
+                        onPressed: _userDisasterId != null
+                            ? _showAddPopup
+                            : null,
                         width: 100.0,
                         height: 33.0,
                       ),
@@ -764,10 +927,7 @@ class _ChecklistPageState extends State<ChecklistPage> {
               Expanded(
                 child: IndexedStack(
                   index: _selectedIndex,
-                  children: [
-                    _buildChecklistTab(),
-                    _buildArchiveTab(),
-                  ],
+                  children: [_buildChecklistTab(), _buildArchiveTab()],
                 ),
               ),
             ],

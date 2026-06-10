@@ -447,12 +447,100 @@ class ChecklistApi {
     }).toList();
   }
 
+  Future<List<AttachmentModel>> enrichArchiveMemoContent(
+    int userDisasterId,
+    List<AttachmentModel> items,
+  ) async {
+    final memoItemsWithoutContent = items
+        .where(
+          (a) =>
+              a.attachmentType == 'MEMO' &&
+              (a.content == null || a.content!.isEmpty),
+        )
+        .toList();
+
+    if (memoItemsWithoutContent.isEmpty) return items;
+
+    final uniqueIds = memoItemsWithoutContent
+        .map((a) => a.checklistItemId)
+        .whereType<int>()
+        .toSet();
+
+    final Map<int, List<AttachmentModel>> detailMap = {};
+    for (final itemId in uniqueIds) {
+      try {
+        detailMap[itemId] = await fetchChecklistDetail(userDisasterId, itemId);
+        if (kDebugMode) {
+          debugPrint(
+            '[메모 보강] itemId=$itemId 상세 조회 성공 (${detailMap[itemId]!.length}개)',
+          );
+        }
+      } catch (e) {
+        if (kDebugMode) {
+          debugPrint('[메모 보강] itemId=$itemId 상세 조회 실패: $e');
+        }
+      }
+    }
+
+    if (detailMap.isEmpty) return items;
+
+    return items.map((item) {
+      if (item.attachmentType != 'MEMO') return item;
+      if (item.content != null && item.content!.isNotEmpty) return item;
+      if (item.checklistItemId == null) return item;
+
+      final details = detailMap[item.checklistItemId!];
+      if (details == null) return item;
+
+      AttachmentModel? matching;
+      try {
+        matching =
+            details.firstWhere((a) => a.attachmentId == item.attachmentId);
+      } catch (_) {
+        try {
+          matching =
+              details.firstWhere((a) => a.attachmentType == 'MEMO');
+        } catch (_) {}
+      }
+
+      if (matching == null ||
+          matching.content == null ||
+          matching.content!.isEmpty) {
+        return item;
+      }
+
+      if (kDebugMode) {
+        debugPrint(
+          '[메모 보강] attachmentId=${item.attachmentId} content=${matching.content}',
+        );
+      }
+
+      return AttachmentModel(
+        attachmentId: item.attachmentId,
+        checklistItemId: item.checklistItemId,
+        checklistItemTitle: item.checklistItemTitle,
+        attachmentType: item.attachmentType,
+        content: matching.content,
+        fileUrl: item.fileUrl,
+        originalFileName: item.originalFileName,
+        mimeType: item.mimeType,
+        fileSize: item.fileSize,
+        thumbnailUrl: item.thumbnailUrl,
+        checklistDate: item.checklistDate,
+        createdAt: item.createdAt,
+      );
+    }).toList();
+  }
+
   Future<int> addAttachment(
     int userDisasterId,
     int checklistItemId,
     Map<String, dynamic> body,
   ) async {
     if (kDebugMode) {
+      if (body['attachmentType'] == 'MEMO') {
+        debugPrint('[메모 저장 content] ${body['content']}');
+      }
       debugPrint(
         '[체크리스트] POST /api/v1/disasters/$userDisasterId/checklist/$checklistItemId/attachments '
         'body=$body',
@@ -506,6 +594,43 @@ class ChecklistApi {
     if (kDebugMode) {
       debugPrint('[체크리스트] 첨부 삭제 응답: ${response.statusCode} ${response.data}');
     }
+  }
+
+  Future<String> downloadAttachmentToFile(
+    AttachmentModel attachment,
+    String saveDir,
+  ) async {
+    if (attachment.attachmentType == 'MEMO') {
+      final title = parseMemoTitle(attachment.content);
+      final body = parseMemoBody(attachment.content);
+      final safeTitle =
+          title.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_').trim();
+      final fileName = safeTitle.isNotEmpty ? '$safeTitle.txt' : 'memo.txt';
+      final filePath = '$saveDir/$fileName';
+      if (kDebugMode) {
+        debugPrint('[다운로드] MEMO → $filePath');
+        debugPrint(
+          '[다운로드] 제목=$title 내용=${body.length > 50 ? body.substring(0, 50) : body}',
+        );
+      }
+      await File(filePath).writeAsString('$title\n\n$body');
+      return filePath;
+    }
+
+    final url = attachment.fileUrl;
+    if (url == null) throw Exception('파일 URL이 없습니다.');
+    final rawName = attachment.originalFileName ??
+        (attachment.attachmentType == 'IMAGE'
+            ? 'image_${attachment.attachmentId}.jpg'
+            : 'file_${attachment.attachmentId}');
+    final filePath = '$saveDir/$rawName';
+    if (kDebugMode) {
+      debugPrint(
+        '[다운로드] ${attachment.attachmentType} → $filePath url=$url',
+      );
+    }
+    await Dio().download(url, filePath);
+    return filePath;
   }
 
   Future<List<AttachmentModel>> fetchArchive(

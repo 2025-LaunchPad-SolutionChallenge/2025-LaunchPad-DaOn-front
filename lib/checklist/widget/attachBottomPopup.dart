@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -64,6 +65,37 @@ class _AttachBottomPopupWidgetState extends State<AttachBottomPopupWidget> {
       _errorMessage = null;
       if (_titleController.text.isEmpty) {
         _titleController.text = file.name;
+      }
+    });
+  }
+
+  Future<void> _pickFile() async {
+    final result = await FilePicker.pickFiles(
+      type: FileType.any,
+      allowMultiple: false,
+    );
+    if (result == null || result.files.isEmpty) return;
+    final picked = result.files.first;
+    if (picked.size > 10 * 1024 * 1024) {
+      setState(() => _errorMessage = '10MB를 초과하는 파일은 첨부할 수 없습니다.');
+      return;
+    }
+    final path = picked.path;
+    if (path == null) {
+      setState(() => _errorMessage = '파일 경로를 읽을 수 없습니다.');
+      return;
+    }
+    if (kDebugMode) {
+      debugPrint(
+        '[파일 선택] name=${picked.name} size=${picked.size} path=$path',
+      );
+    }
+    setState(() {
+      _selectedFile = XFile(path);
+      _fileType = 'FILE';
+      _errorMessage = null;
+      if (_titleController.text.isEmpty) {
+        _titleController.text = picked.name;
       }
     });
   }
@@ -234,13 +266,7 @@ class _AttachBottomPopupWidgetState extends State<AttachBottomPopupWidget> {
                         height: 112.0,
                         child: ElevatedButton(
                           style: _buttonStyle,
-                          onPressed: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('파일 첨부는 추후 지원 예정입니다.'),
-                              ),
-                            );
-                          },
+                          onPressed: _pickFile,
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
@@ -273,8 +299,10 @@ class _AttachBottomPopupWidgetState extends State<AttachBottomPopupWidget> {
                 ),
                 child: Row(
                   children: [
-                    const Icon(
-                      Icons.image_outlined,
+                    Icon(
+                      _fileType == 'IMAGE'
+                          ? Icons.image_outlined
+                          : Icons.insert_drive_file_outlined,
                       color: ColorStyles.main1,
                       size: 20,
                     ),

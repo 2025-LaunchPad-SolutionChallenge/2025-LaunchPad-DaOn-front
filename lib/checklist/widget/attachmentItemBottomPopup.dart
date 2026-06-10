@@ -7,12 +7,14 @@ import 'package:project_daon/ui/fontStyles.dart';
 class AttachmentItemBottomPopupWidget extends StatelessWidget {
   final AttachmentModel attachment;
   final VoidCallback onEdit;
+  final VoidCallback onDownload;
   final VoidCallback onDelete;
 
   const AttachmentItemBottomPopupWidget({
     super.key,
     required this.attachment,
     required this.onEdit,
+    required this.onDownload,
     required this.onDelete,
   });
 
@@ -97,7 +99,48 @@ class AttachmentItemBottomPopupWidget extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 12.0),
+                  const SizedBox(width: 10.0),
+                  Expanded(
+                    child: SizedBox(
+                      height: 112.0,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: ColorStyles.white,
+                          foregroundColor: ColorStyles.black2,
+                          overlayColor: ColorStyles.main1,
+                          elevation: 0,
+                          shadowColor: Colors.transparent,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(7),
+                            side: const BorderSide(
+                              color: ColorStyles.main1,
+                              width: 1.0,
+                            ),
+                          ),
+                          padding: EdgeInsets.zero,
+                        ),
+                        onPressed: onDownload,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(
+                              Icons.download_outlined,
+                              color: ColorStyles.black2,
+                              size: 24,
+                            ),
+                            const SizedBox(height: 8.0),
+                            Text(
+                              '다운로드',
+                              style: FontStyles.med12.copyWith(
+                                color: ColorStyles.black2,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10.0),
                   Expanded(
                     child: SizedBox(
                       height: 112.0,

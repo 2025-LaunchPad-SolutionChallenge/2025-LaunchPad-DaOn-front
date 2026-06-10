@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:project_daon/checklist/model/attachment_model.dart';
 import 'package:project_daon/ui/colorStyles.dart';
 import 'package:project_daon/ui/fontStyles.dart';
@@ -207,10 +208,12 @@ class _ChecklistItemWidgetState extends State<ChecklistItemWidget> {
     }
 
     if (_attachments != null) {
-      final memos =
-          _attachments!.where((a) => a.attachmentType == 'MEMO').toList();
-      final files =
-          _attachments!.where((a) => a.attachmentType != 'MEMO').toList();
+      final memos = _attachments!
+          .where((a) => a.attachmentType == 'MEMO')
+          .toList();
+      final files = _attachments!
+          .where((a) => a.attachmentType != 'MEMO')
+          .toList();
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -286,39 +289,55 @@ class _ChecklistItemWidgetState extends State<ChecklistItemWidget> {
   }
 
   Widget _buildFilePreview(AttachmentModel attachment) {
-    final url = attachment.thumbnailUrl ?? attachment.fileUrl;
-    if (attachment.attachmentType == 'IMAGE' && url != null) {
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(8),
-        child: Image.network(
-          url,
-          width: 88,
-          height: 88,
-          fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) =>
-              _fileNameBox(attachment.originalFileName),
-        ),
-      );
+    if (attachment.attachmentType == 'IMAGE') {
+      final url = attachment.thumbnailUrl ?? attachment.fileUrl;
+      if (url != null) {
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: Image.network(
+            url,
+            width: 88,
+            height: 88,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) =>
+                _fileNameBox(attachment.originalFileName),
+          ),
+        );
+      }
+      return _fileNameBox(attachment.originalFileName);
     }
-    return _fileNameBox(attachment.originalFileName);
+    return _buildFileThumbnailBox(attachment);
+  }
+
+  Widget _buildFileThumbnailBox(AttachmentModel attachment) {
+    final ext = (attachment.originalFileName ?? '')
+        .split('.')
+        .last
+        .toLowerCase();
+    final svgAsset =
+        ['doc', 'docx', 'txt', 'xls', 'xlsx', 'ppt', 'pptx'].contains(ext)
+        ? 'assets/checklist/doc.png'
+        : 'assets/checklist/pdf.png';
+    return Container(
+      width: 88,
+      height: 88,
+      child: Center(child: Image(image: AssetImage(svgAsset))),
+    );
   }
 
   Widget _fileNameBox(String? name) {
     return Container(
       width: 88,
       height: 88,
-      padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
         color: ColorStyles.secon5,
         borderRadius: BorderRadius.circular(8),
       ),
-      child: Center(
-        child: Text(
-          name ?? '파일',
-          overflow: TextOverflow.ellipsis,
-          maxLines: 3,
-          textAlign: TextAlign.center,
-          style: FontStyles.med12.copyWith(color: ColorStyles.black2),
+      child: const Center(
+        child: Icon(
+          Icons.image_not_supported_outlined,
+          color: ColorStyles.black2,
+          size: 36,
         ),
       ),
     );
