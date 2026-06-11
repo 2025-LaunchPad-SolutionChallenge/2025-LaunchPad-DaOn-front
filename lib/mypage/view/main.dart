@@ -20,14 +20,15 @@ class MyPage extends StatefulWidget {
   const MyPage({super.key});
 
   @override
-  State<MyPage> createState() => _MyPageState();
+  State<MyPage> createState() => MyPageState();
 }
 
-class _MyPageState extends State<MyPage> {
+class MyPageState extends State<MyPage> {
   UserProfile? _profile;
   ResidenceStatus? _residenceStatus;
   HomeSummary? _homeSummary;
   RecoveryStageResponse? _recoveryStage;
+  RecoveryProgress? _recoveryProgress;
   List<UserDisasterSummary> _disasters = [];
   bool _isProfileLoading = true;
 
@@ -77,12 +78,22 @@ class _MyPageState extends State<MyPage> {
 
   Future<void> _reloadRecoveryStage(int id) async {
     try {
-      final stage = await _homeApi.getRecoveryStage(id);
+      final results = await Future.wait([
+        _homeApi.getRecoveryStage(id),
+        _homeApi.fetchRecoveryProgress(id),
+      ]);
       if (!mounted) return;
-      setState(() => _recoveryStage = stage);
+      setState(() {
+        _recoveryStage = results[0] as RecoveryStageResponse;
+        _recoveryProgress = results[1] as RecoveryProgress;
+      });
     } catch (e) {
       if (kDebugMode) debugPrint('[마이페이지] 회복 단계 재조회 실패: $e');
     }
+  }
+
+  Future<void> refreshRecoveryAndProgress() async {
+    await _loadMyPageData();
   }
 
   Future<void> _loadMyPageData() async {
@@ -146,11 +157,22 @@ class _MyPageState extends State<MyPage> {
     }
 
     RecoveryStageResponse? recoveryStage;
+    RecoveryProgress? recoveryProgress;
     if (activeId != null) {
       try {
-        recoveryStage = await _homeApi.getRecoveryStage(activeId);
+        final results = await Future.wait([
+          _homeApi.getRecoveryStage(activeId),
+          _homeApi.fetchRecoveryProgress(activeId),
+        ]);
+        recoveryStage = results[0] as RecoveryStageResponse;
+        recoveryProgress = results[1] as RecoveryProgress;
       } catch (e) {
-        if (kDebugMode) debugPrint('[마이페이지] 회복 단계 조회 실패: $e');
+        if (kDebugMode) debugPrint('[마이페이지] 회복 단계/진행도 조회 실패: $e');
+        if (recoveryStage == null && activeId != null) {
+          try {
+            recoveryStage = await _homeApi.getRecoveryStage(activeId);
+          } catch (_) {}
+        }
       }
     }
 
@@ -160,6 +182,7 @@ class _MyPageState extends State<MyPage> {
       _residenceStatus = residenceStatus;
       _homeSummary = homeSummary;
       _recoveryStage = recoveryStage;
+      _recoveryProgress = recoveryProgress;
       _disasters = disasters;
       _isProfileLoading = false;
     });
@@ -480,7 +503,10 @@ class _MyPageState extends State<MyPage> {
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
                 width: double.infinity,
                 child: ChecklistProgessBar(
-                  currentCheck: _homeSummary?.todayCompletionRate ?? 0.0,
+                  currentCheck: (_recoveryProgress?.recoveryScore ??
+                          _homeSummary?.recoveryProgress ??
+                          0.0)
+                      .clamp(0.0, 100.0),
                   text: '회복률',
                   textcolor: ColorStyles.white,
                   progresscolor: ColorStyles.main3,

@@ -21,16 +21,6 @@ class DisasterCardWidget extends StatelessWidget {
     required this.onAddDisaster,
   }) : super(key: key);
 
-  UserDisasterSummary get _selectedRecord {
-    final id = selectedId;
-    if (id != null) {
-      for (final r in records) {
-        if (r.userDisasterId == id) return r;
-      }
-    }
-    return records.first;
-  }
-
   String _statusLabel(String status) {
     switch (status) {
       case 'ACTIVE':
@@ -46,12 +36,29 @@ class DisasterCardWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final selected = _selectedRecord;
-    final dropdownItems = records.map((r) => r.displayLabel).toList();
+    // userDisasterId 기준으로 중복 제거
+    final seen = <int>{};
+    final unique = records
+        .where((r) => seen.add(r.userDisasterId))
+        .toList();
+
+    final ids = unique.map((r) => r.userDisasterId).toList();
+    final labels = unique.map((r) => r.displayLabel).toList();
+
+    // selectedId가 목록에 없으면 첫 번째 항목으로 fallback
+    final validSelectedId =
+        (selectedId != null && ids.contains(selectedId))
+            ? selectedId
+            : (ids.isNotEmpty ? ids.first : null);
+
+    final selected = unique.firstWhere(
+      (r) => r.userDisasterId == validSelectedId,
+      orElse: () => unique.first,
+    );
 
     if (kDebugMode) {
       debugPrint(
-        '[재난] 카드 표시: location=장소 정보 없음, damageDetail=등록된 피해 정보 없음',
+        '[재난] 카드 표시: unique=${unique.length}개, selectedId=$validSelectedId',
       );
     }
 
@@ -70,22 +77,16 @@ class DisasterCardWidget extends StatelessWidget {
             children: [
               Expanded(
                 child: MyPageDropdown(
-                  items: dropdownItems,
-                  selectedValue: selected.displayLabel,
+                  ids: ids,
+                  labels: labels,
+                  selectedId: validSelectedId,
                   color: 'main1',
-                  onChanged: (label) {
-                    if (label == null) return;
-                    for (final r in records) {
-                      if (r.displayLabel == label) {
-                        if (kDebugMode) {
-                          debugPrint(
-                            '[재난] 선택 변경: userDisasterId=${r.userDisasterId}',
-                          );
-                        }
-                        onDisasterSelected(r.userDisasterId);
-                        break;
-                      }
+                  onChanged: (id) {
+                    if (id == null) return;
+                    if (kDebugMode) {
+                      debugPrint('[재난] 선택 변경: userDisasterId=$id');
                     }
+                    onDisasterSelected(id);
                   },
                 ),
               ),

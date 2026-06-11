@@ -28,10 +28,10 @@ class ChecklistPage extends StatefulWidget {
   const ChecklistPage({super.key});
 
   @override
-  State<ChecklistPage> createState() => _ChecklistPageState();
+  State<ChecklistPage> createState() => ChecklistPageState();
 }
 
-class _ChecklistPageState extends State<ChecklistPage> {
+class ChecklistPageState extends State<ChecklistPage> {
   final _homeApi = HomeApi();
   final _checklistApi = ChecklistApi();
 
@@ -42,6 +42,7 @@ class _ChecklistPageState extends State<ChecklistPage> {
   bool _isLoading = false;
   String? _errorMessage;
   double _completionRate = 0.0;
+  WeeklyChecklistProgress? _weeklyProgress;
   int? _userDisasterId;
 
   List<AttachmentModel> _archiveItems = [];
@@ -64,6 +65,7 @@ class _ChecklistPageState extends State<ChecklistPage> {
     _loadChecklist().whenComplete(() {
       if (mounted) _loadArchive();
     });
+    _loadWeeklyProgress();
   }
 
   @override
@@ -151,8 +153,22 @@ class _ChecklistPageState extends State<ChecklistPage> {
     }
   }
 
+  Future<void> _loadWeeklyProgress() async {
+    try {
+      final progress = await _homeApi.fetchWeeklyChecklistProgress(DateTime.now());
+      if (!mounted) return;
+      setState(() => _weeklyProgress = progress);
+    } catch (e) {
+      if (kDebugMode) debugPrint('[체크리스트] 주간 진행도 조회 실패: $e');
+    }
+  }
+
+  Future<void> refreshWeeklyProgress() async {
+    await _loadWeeklyProgress();
+  }
+
   Future<void> _refreshAll() async {
-    await Future.wait([_loadChecklist(), _loadArchive()]);
+    await Future.wait([_loadChecklist(), _loadArchive(), _loadWeeklyProgress()]);
   }
 
   // ── 체크리스트 CRUD ───────────────────────────────────────────
@@ -876,7 +892,9 @@ class _ChecklistPageState extends State<ChecklistPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ChecklistProgessBar(currentCheck: _completionRate),
+              ChecklistProgessBar(
+                currentCheck: _weeklyProgress?.completionRate ?? _completionRate,
+              ),
               ChecklistWeekWidget(
                 selectedDate: _currentSelectedDate,
                 onDateSelected: (newDate) {

@@ -30,9 +30,10 @@ class HomePageState extends State<HomePage> {
   HomeSummary? _summary;
   bool _todayCheckDone = false;
   RecoveryStageResponse? _stage;
+  RecoveryProgress? _recoveryProgress;
   List<UserDisasterSummary> _disasters = [];
   int? _selectedDisasterId;
-  double? _selectedProgress; // null = use _summary.recoveryProgress
+  double? _selectedProgress; // null = use _recoveryProgress.recoveryScore
 
   // ── Task state ──
   List<TodayTaskItem> _shortTasks = [];
@@ -72,6 +73,7 @@ class HomePageState extends State<HomePage> {
             ? match.first.recoveryProgress
             : null;
         _stage = null;
+        _recoveryProgress = null;
       });
       _loadStage(id);
       // TODO: /api/v1/home/summary 및 /api/v1/home/today-tasks가 userDisasterId 쿼리 파라미터를
@@ -153,12 +155,21 @@ class HomePageState extends State<HomePage> {
   }
 
   Future<void> _loadStage(int disasterId) async {
-    final stage = await _safeGet<RecoveryStageResponse>(
+    final stageFuture = _safeGet<RecoveryStageResponse>(
       _homeApi.getRecoveryStage(disasterId),
       '[홈] 회복 단계 조회 실패',
     );
-    if (!mounted || stage == null) return;
-    setState(() => _stage = stage);
+    final progressFuture = _safeGet<RecoveryProgress>(
+      _homeApi.fetchRecoveryProgress(disasterId),
+      '[홈] 회복 진행도 조회 실패',
+    );
+    final stage = await stageFuture;
+    final progress = await progressFuture;
+    if (!mounted) return;
+    setState(() {
+      if (stage != null) _stage = stage;
+      if (progress != null) _recoveryProgress = progress;
+    });
   }
 
   Future<void> _loadFullTasks() async {
@@ -356,6 +367,11 @@ class HomePageState extends State<HomePage> {
       if (summary != null) _summary = summary;
     });
 
+    final disasterId = _selectedDisasterId ?? summary?.userDisasterId;
+    if (disasterId != null) {
+      _loadStage(disasterId);
+    }
+
     if (_fullTasksFetched) {
       final full = await _safeGet<TodayTasksResponse>(
         _homeApi.getTodayTasksFull(),
@@ -385,7 +401,9 @@ class HomePageState extends State<HomePage> {
     final double bottomSheetHeight = screenHeight * _minSheetSize;
 
     final double progress =
-        (_selectedProgress ?? _summary?.recoveryProgress ?? 0);
+        (_recoveryProgress?.recoveryScore ?? _selectedProgress ?? _summary?.recoveryProgress ?? 0)
+            .clamp(0.0, 100.0) /
+        100.0;
 
     final displayTasks = _isExpanded && _fullTasksFetched
         ? _fullTasks
@@ -434,6 +452,7 @@ class HomePageState extends State<HomePage> {
                           _selectedDisasterId = disaster.userDisasterId;
                           _selectedProgress = disaster.recoveryProgress;
                           _stage = null;
+                          _recoveryProgress = null;
                         });
                         _loadStage(disaster.userDisasterId);
                       },
