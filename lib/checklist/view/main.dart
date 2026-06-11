@@ -155,7 +155,9 @@ class ChecklistPageState extends State<ChecklistPage> {
 
   Future<void> _loadWeeklyProgress() async {
     try {
-      final progress = await _homeApi.fetchWeeklyChecklistProgress(DateTime.now());
+      final progress = await _homeApi.fetchWeeklyChecklistProgress(
+        _currentSelectedDate,
+      );
       if (!mounted) return;
       setState(() => _weeklyProgress = progress);
     } catch (e) {
@@ -304,7 +306,7 @@ class ChecklistPageState extends State<ChecklistPage> {
         checklistItemId: itemId,
         isCompleted: newValue,
       );
-      if (mounted) await _loadChecklist();
+      if (mounted) await Future.wait([_loadChecklist(), _loadWeeklyProgress()]);
     } catch (_) {
       if (mounted) {
         setState(() => _items[index].isChecked = !newValue);
@@ -901,6 +903,7 @@ class ChecklistPageState extends State<ChecklistPage> {
                   setState(() => _currentSelectedDate = newDate);
                   _loadChecklist();
                   _loadArchive();
+                  _loadWeeklyProgress();
                 },
               ),
               const SizedBox(height: 20.0),

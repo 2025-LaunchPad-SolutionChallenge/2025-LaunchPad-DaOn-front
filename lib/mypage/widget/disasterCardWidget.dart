@@ -12,6 +12,7 @@ class DisasterCardWidget extends StatelessWidget {
   final int? selectedId;
   final ValueChanged<int> onDisasterSelected;
   final VoidCallback onAddDisaster;
+  final ValueChanged<int>? onDashboardTap;
 
   const DisasterCardWidget({
     Key? key,
@@ -19,6 +20,7 @@ class DisasterCardWidget extends StatelessWidget {
     this.selectedId,
     required this.onDisasterSelected,
     required this.onAddDisaster,
+    this.onDashboardTap,
   }) : super(key: key);
 
   String _statusLabel(String status) {
@@ -139,7 +141,9 @@ class DisasterCardWidget extends StatelessWidget {
           Align(
             alignment: Alignment.centerRight,
             child: ElevatedButton(
-              onPressed: () {},
+              onPressed: validSelectedId != null
+                  ? () => onDashboardTap?.call(validSelectedId!)
+                  : null,
               style: ElevatedButton.styleFrom(
                 backgroundColor: ColorStyles.main2,
                 elevation: 0,

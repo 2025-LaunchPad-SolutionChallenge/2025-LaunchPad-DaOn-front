@@ -503,9 +503,11 @@ class MyPageState extends State<MyPage> {
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
                 width: double.infinity,
                 child: ChecklistProgessBar(
-                  currentCheck: (_recoveryProgress?.recoveryScore ??
-                          _homeSummary?.recoveryProgress ??
-                          0.0)
+                  // API는 0~1 스케일. ChecklistProgessBar는 0~100 기대하므로 *100.
+                  currentCheck: ((_recoveryProgress?.recoveryScore ??
+                              _homeSummary?.recoveryProgress ??
+                              0.0) *
+                          100)
                       .clamp(0.0, 100.0),
                   text: '회복률',
                   textcolor: ColorStyles.white,

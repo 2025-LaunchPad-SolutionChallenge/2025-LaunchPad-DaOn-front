@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:project_daon/home/api/homeApi.dart';
+import 'package:project_daon/mypage/view/recoveryGraphPage.dart';
 import 'package:project_daon/mypage/widget/disasterCardWidget.dart';
 import 'package:project_daon/mypage/widget/stateToggleWidget.dart';
 import 'package:project_daon/ui/colorStyles.dart';
@@ -96,6 +97,13 @@ class _RecoveryDashboardWidgetState extends State<RecoveryDashboardWidget> {
             selectedId: widget.selectedDisasterId,
             onDisasterSelected: widget.onDisasterSelected,
             onAddDisaster: widget.onAddDisaster,
+            onDashboardTap: (id) {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => RecoveryGraphPage(userDisasterId: id),
+                ),
+              );
+            },
           ),
       ],
     );

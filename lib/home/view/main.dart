@@ -400,10 +400,10 @@ class HomePageState extends State<HomePage> {
     final double screenHeight = MediaQuery.of(context).size.height;
     final double bottomSheetHeight = screenHeight * _minSheetSize;
 
+    // API는 0~1 스케일로 반환 (0.22 = 22%). SemiCircleProgressBar도 0~1 기대.
     final double progress =
         (_recoveryProgress?.recoveryScore ?? _selectedProgress ?? _summary?.recoveryProgress ?? 0)
-            .clamp(0.0, 100.0) /
-        100.0;
+            .clamp(0.0, 1.0);
 
     final displayTasks = _isExpanded && _fullTasksFetched
         ? _fullTasks
