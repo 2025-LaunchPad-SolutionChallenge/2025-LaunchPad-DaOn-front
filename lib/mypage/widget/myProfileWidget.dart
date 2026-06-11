@@ -38,14 +38,23 @@ class MyProfileWidget extends StatelessWidget {
   Widget _buildProfileImage() {
     final url = profileImageUrl;
     if (url != null && url.isNotEmpty) {
-      return ClipOval(
-        child: Image.network(
-          url,
-          width: 80,
-          height: 80,
-          fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) =>
-              SvgPicture.asset('assets/mypage/myprofile.svg'),
+      return Container(
+        width: 100,
+        height: 100,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: Colors.white.withAlpha(100),
+          border: Border.all(color: Colors.white.withAlpha(100), width: 4),
+        ),
+        child: ClipOval(
+          child: Image.network(
+            url,
+            width: 86,
+            height: 86,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) =>
+                SvgPicture.asset('assets/mypage/myprofile.svg'),
+          ),
         ),
       );
     }
@@ -65,7 +74,7 @@ class MyProfileWidget extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           _buildProfileImage(),
-          const SizedBox(height: 16.0),
+          const SizedBox(height: 10.0),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
