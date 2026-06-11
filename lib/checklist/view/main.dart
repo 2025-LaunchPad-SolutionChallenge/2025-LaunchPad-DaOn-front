@@ -898,7 +898,7 @@ class ChecklistPageState extends State<ChecklistPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               ChecklistProgessBar(
-                currentCheck: _completionRate,
+                currentCheck: _weeklyProgress?.completionRate ?? 0.0,
               ),
               ChecklistWeekWidget(
                 selectedDate: _currentSelectedDate,
