@@ -264,7 +264,9 @@ class HomePageState extends State<HomePage> {
         checklistItemId: item.checklistItemId,
         isCompleted: newValue,
       );
+      await _homeApi.runRecoveryBatch();
       _refetchSummary();
+      _loadStage(disasterId);
     } catch (e) {
       if (!mounted) return;
       void rollback(List<TodayTaskItem> list) {
@@ -357,14 +359,31 @@ class HomePageState extends State<HomePage> {
       _homeApi.getHomeSummary(),
       '[홈] 탭 복귀 요약 재조회 실패',
     );
+    final disastersFuture = _safeGet<DisasterListResponse>(
+      _homeApi.getDisasterList(),
+      '[홈] 탭 복귀 재난 목록 재조회 실패',
+    );
 
     final tasks = await tasksFuture;
     final summary = await summaryFuture;
+    final disasters = await disastersFuture;
 
     if (!mounted) return;
     setState(() {
       if (tasks != null) _shortTasks = tasks.items;
       if (summary != null) _summary = summary;
+      if (disasters != null) {
+        _disasters = disasters.content;
+        // 선택된 재난의 recoveryProgress도 최신값으로 갱신
+        if (_selectedDisasterId != null) {
+          final match = disasters.content.where(
+            (d) => d.userDisasterId == _selectedDisasterId,
+          );
+          if (match.isNotEmpty) {
+            _selectedProgress = match.first.recoveryProgress;
+          }
+        }
+      }
     });
 
     final disasterId = _selectedDisasterId ?? summary?.userDisasterId;
@@ -400,10 +419,11 @@ class HomePageState extends State<HomePage> {
     final double screenHeight = MediaQuery.of(context).size.height;
     final double bottomSheetHeight = screenHeight * _minSheetSize;
 
-    // API는 0~1 스케일로 반환 (0.22 = 22%). SemiCircleProgressBar도 0~1 기대.
+    // 모든 진행률 값은 0~100 스케일. SemiCircleProgressBar는 0~1 기대하므로 /100.
     final double progress =
         (_recoveryProgress?.recoveryScore ?? _selectedProgress ?? _summary?.recoveryProgress ?? 0)
-            .clamp(0.0, 1.0);
+            .clamp(0.0, 100.0) /
+        100.0;
 
     final displayTasks = _isExpanded && _fullTasksFetched
         ? _fullTasks

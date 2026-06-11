@@ -142,6 +142,22 @@ class RecoveryStageInDisaster {
   }
 }
 
+class DisasterLocation {
+  final double? latitude;
+  final double? longitude;
+  final String? address;
+
+  DisasterLocation({this.latitude, this.longitude, this.address});
+
+  factory DisasterLocation.fromJson(Map<String, dynamic> json) {
+    return DisasterLocation(
+      latitude: (json['latitude'] as num?)?.toDouble(),
+      longitude: (json['longitude'] as num?)?.toDouble(),
+      address: json['address']?.toString(),
+    );
+  }
+}
+
 class UserDisasterSummary {
   final int userDisasterId;
   final String title;
@@ -152,6 +168,7 @@ class UserDisasterSummary {
   final String? endedAt;
   final RecoveryStageInDisaster? recoveryStage;
   final double recoveryProgress;
+  final DisasterLocation? location;
 
   UserDisasterSummary({
     required this.userDisasterId,
@@ -163,6 +180,7 @@ class UserDisasterSummary {
     this.endedAt,
     this.recoveryStage,
     required this.recoveryProgress,
+    this.location,
   });
 
   factory UserDisasterSummary.fromJson(Map<String, dynamic> json) {
@@ -180,6 +198,11 @@ class UserDisasterSummary {
             )
           : null,
       recoveryProgress: (json['recoveryProgress'] as num?)?.toDouble() ?? 0.0,
+      location: json['location'] != null
+          ? DisasterLocation.fromJson(
+              Map<String, dynamic>.from(json['location'] as Map),
+            )
+          : null,
     );
   }
 
@@ -394,6 +417,19 @@ class HomeApi {
     return RecoveryProgress.fromJson(
       Map<String, dynamic>.from(response.data as Map),
     );
+  }
+
+  /// 개발/데모용: 회복 라벨링 배치를 즉시 실행합니다.
+  /// kDebugMode에서만 동작하며, 실패해도 앱 흐름에 영향을 주지 않습니다.
+  Future<void> runRecoveryBatch() async {
+    if (!kDebugMode) return;
+    try {
+      debugPrint('[배치] POST /api/v1/dev/batch/recovery');
+      final response = await _dio.post('/api/v1/dev/batch/recovery');
+      debugPrint('[배치] 응답: ${response.statusCode} | ${response.data}');
+    } catch (e) {
+      debugPrint('[배치] 실패 (무시): $e');
+    }
   }
 
   Future<WeeklyChecklistProgress> fetchWeeklyChecklistProgress(

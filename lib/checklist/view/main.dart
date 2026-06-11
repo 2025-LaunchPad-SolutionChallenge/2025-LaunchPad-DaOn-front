@@ -82,8 +82,10 @@ class ChecklistPageState extends State<ChecklistPage> {
     if (id != null && id != _userDisasterId) {
       if (kDebugMode) debugPrint('[체크리스트] 전역 재난 변경: userDisasterId=$id');
       _userDisasterId = id;
+      setState(() => _weeklyProgress = null);
       _loadChecklist();
       _loadArchive();
+      _loadWeeklyProgress();
     }
   }
 
@@ -306,6 +308,7 @@ class ChecklistPageState extends State<ChecklistPage> {
         checklistItemId: itemId,
         isCompleted: newValue,
       );
+      await _homeApi.runRecoveryBatch();
       if (mounted) await Future.wait([_loadChecklist(), _loadWeeklyProgress()]);
     } catch (_) {
       if (mounted) {
@@ -895,7 +898,7 @@ class ChecklistPageState extends State<ChecklistPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               ChecklistProgessBar(
-                currentCheck: _weeklyProgress?.completionRate ?? _completionRate,
+                currentCheck: _completionRate,
               ),
               ChecklistWeekWidget(
                 selectedDate: _currentSelectedDate,

@@ -332,6 +332,30 @@ class MypageApi {
     }
   }
 
+  // ──────────────────────────────────────────────────────────────
+  // 재난 상태 변경 (종료/보관)
+  // PATCH /api/v1/disasters/{userDisasterId}/close
+  // action: "CLOSE" → EXPIRED | "ARCHIVE" → ARCHIVED
+  // ──────────────────────────────────────────────────────────────
+  Future<void> closeDisaster({
+    required int userDisasterId,
+    required String action,
+    String? endedAt,
+  }) async {
+    final path = '/api/v1/disasters/$userDisasterId/close';
+    final data = <String, dynamic>{'action': action};
+    if (endedAt != null) data['endedAt'] = endedAt;
+
+    if (kDebugMode) debugPrint('[재난 상태 변경] PATCH $path action=$action endedAt=$endedAt');
+
+    try {
+      final response = await _authService.dio.patch(path, data: data);
+      if (kDebugMode) debugPrint('[재난 상태 변경 응답] ${response.statusCode} | ${response.data}');
+    } on DioException catch (e) {
+      throw Exception(_extractDioErrorMessage(e, '재난 상태 변경에 실패했습니다.'));
+    }
+  }
+
   String _extractDioErrorMessage(DioException e, String fallbackMessage) {
     final status = e.response?.statusCode ?? 0;
     final data = e.response?.data;

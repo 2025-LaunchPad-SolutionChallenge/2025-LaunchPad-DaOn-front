@@ -4,15 +4,13 @@ import 'package:project_daon/home/api/homeApi.dart';
 import 'package:project_daon/mypage/widget/myPageDropdown.dart';
 import 'package:project_daon/ui/colorStyles.dart';
 
-// GET /api/v1/disasters 응답에는 location/damageDetail 필드가 없습니다.
-// GET /api/v1/disasters/{id} 응답에도 location/damageDetail이 없어
-// 두 항목은 현재 fallback 텍스트로 표시됩니다.
 class DisasterCardWidget extends StatelessWidget {
   final List<UserDisasterSummary> records;
   final int? selectedId;
   final ValueChanged<int> onDisasterSelected;
   final VoidCallback onAddDisaster;
   final ValueChanged<int>? onDashboardTap;
+  final void Function(int id, String action)? onCloseDisaster;
 
   const DisasterCardWidget({
     Key? key,
@@ -21,6 +19,7 @@ class DisasterCardWidget extends StatelessWidget {
     required this.onDisasterSelected,
     required this.onAddDisaster,
     this.onDashboardTap,
+    this.onCloseDisaster,
   }) : super(key: key);
 
   String _statusLabel(String status) {
@@ -36,18 +35,38 @@ class DisasterCardWidget extends StatelessWidget {
     }
   }
 
+  Widget _buildIconButton({
+    required IconData icon,
+    required String tooltip,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return Tooltip(
+      message: tooltip,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: color),
+          ),
+          child: Icon(icon, color: color, size: 18),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    // userDisasterId 기준으로 중복 제거
     final seen = <int>{};
-    final unique = records
-        .where((r) => seen.add(r.userDisasterId))
-        .toList();
+    final unique = records.where((r) => seen.add(r.userDisasterId)).toList();
 
     final ids = unique.map((r) => r.userDisasterId).toList();
     final labels = unique.map((r) => r.displayLabel).toList();
 
-    // selectedId가 목록에 없으면 첫 번째 항목으로 fallback
     final validSelectedId =
         (selectedId != null && ids.contains(selectedId))
             ? selectedId
@@ -77,23 +96,20 @@ class DisasterCardWidget extends StatelessWidget {
           // ── 드롭다운 + + 버튼 + 상태 레이블 ──
           Row(
             children: [
-              Expanded(
-                child: MyPageDropdown(
-                  ids: ids,
-                  labels: labels,
-                  selectedId: validSelectedId,
-                  color: 'main1',
-                  onChanged: (id) {
-                    if (id == null) return;
-                    if (kDebugMode) {
-                      debugPrint('[재난] 선택 변경: userDisasterId=$id');
-                    }
-                    onDisasterSelected(id);
-                  },
-                ),
+              MyPageDropdown(
+                ids: ids,
+                labels: labels,
+                selectedId: validSelectedId,
+                color: 'main1',
+                onChanged: (id) {
+                  if (id == null) return;
+                  if (kDebugMode) {
+                    debugPrint('[재난] 선택 변경: userDisasterId=$id');
+                  }
+                  onDisasterSelected(id);
+                },
               ),
               const SizedBox(width: 8),
-              // 재난 추가 + 버튼
               Tooltip(
                 message: '재난 추가',
                 child: InkWell(
@@ -114,49 +130,78 @@ class DisasterCardWidget extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
-              // 상태 레이블
-              Text(
-                _statusLabel(selected.status),
-                style: const TextStyle(
-                  color: ColorStyles.main2,
-                  fontWeight: FontWeight.bold,
+              Expanded(
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: Text(
+                    _statusLabel(selected.status),
+                    style: const TextStyle(
+                      color: ColorStyles.main2,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 16),
-          // 장소 (API 미제공 → fallback)
-          const Text(
-            '장소 정보 없음',
-            style: TextStyle(color: Colors.grey, fontSize: 12),
-          ),
+          if (selected.location?.address != null)
+            Text(
+              selected.location!.address!,
+              style: const TextStyle(color: Colors.grey, fontSize: 12),
+            ),
           const SizedBox(height: 4),
-          // 피해 정도 (API 미제공 → fallback)
-          const Text(
-            '피해 정도: 등록된 피해 정보 없음',
-            style: TextStyle(fontSize: 14, color: Colors.black87),
+          Text(
+            '회복률: ${selected.recoveryProgress.toStringAsFixed(1)}%',
+            style: const TextStyle(fontSize: 14, color: Colors.black87),
           ),
           const SizedBox(height: 17),
-          Align(
-            alignment: Alignment.centerRight,
-            child: ElevatedButton(
-              onPressed: validSelectedId != null
-                  ? () => onDashboardTap?.call(validSelectedId!)
-                  : null,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: ColorStyles.main2,
-                elevation: 0,
-                shadowColor: Colors.transparent,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20.0),
+          // ── 상태 변경 버튼 + 회복 대시보드 버튼 ──
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              if (selected.status == 'ACTIVE') ...[
+                _buildIconButton(
+                  icon: Icons.check_circle_outline,
+                  tooltip: '회복 완료',
+                  color: ColorStyles.main2,
+                  onTap: () => onCloseDisaster?.call(
+                    selected.userDisasterId,
+                    'CLOSE',
+                  ),
+                ),
+                const SizedBox(width: 8),
+              ],
+              if (selected.status != 'ARCHIVED') ...[
+                _buildIconButton(
+                  icon: Icons.archive_outlined,
+                  tooltip: '보관',
+                  color: ColorStyles.grey1,
+                  onTap: () => onCloseDisaster?.call(
+                    selected.userDisasterId,
+                    'ARCHIVE',
+                  ),
+                ),
+                const SizedBox(width: 8),
+              ],
+              ElevatedButton(
+                onPressed: validSelectedId != null
+                    ? () => onDashboardTap?.call(validSelectedId!)
+                    : null,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: ColorStyles.main2,
+                  elevation: 0,
+                  shadowColor: Colors.transparent,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20.0),
+                  ),
+                ),
+                child: const Text(
+                  '회복 대시보드',
+                  style: TextStyle(color: Colors.white),
                 ),
               ),
-              child: const Text(
-                '회복 대시보드',
-                style: TextStyle(color: Colors.white),
-              ),
-            ),
+            ],
           ),
         ],
       ),

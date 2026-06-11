@@ -12,6 +12,7 @@ class RecoveryDashboardWidget extends StatefulWidget {
   final int? selectedDisasterId;
   final ValueChanged<int> onDisasterSelected;
   final VoidCallback onAddDisaster;
+  final void Function(int id, String action)? onCloseDisaster;
 
   const RecoveryDashboardWidget({
     Key? key,
@@ -19,6 +20,7 @@ class RecoveryDashboardWidget extends StatefulWidget {
     this.selectedDisasterId,
     required this.onDisasterSelected,
     required this.onAddDisaster,
+    this.onCloseDisaster,
   }) : super(key: key);
 
   @override
@@ -97,6 +99,7 @@ class _RecoveryDashboardWidgetState extends State<RecoveryDashboardWidget> {
             selectedId: widget.selectedDisasterId,
             onDisasterSelected: widget.onDisasterSelected,
             onAddDisaster: widget.onAddDisaster,
+            onCloseDisaster: widget.onCloseDisaster,
             onDashboardTap: (id) {
               Navigator.of(context).push(
                 MaterialPageRoute(

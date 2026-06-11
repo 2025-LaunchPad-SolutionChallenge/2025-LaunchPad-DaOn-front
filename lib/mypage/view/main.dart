@@ -230,6 +230,20 @@ class MyPageState extends State<MyPage> {
     }
   }
 
+  Future<void> _handleCloseDisaster(int id, String action) async {
+    final now = DateTime.now().toIso8601String().substring(0, 19);
+    try {
+      await _mypageApi.closeDisaster(
+        userDisasterId: id,
+        action: action,
+        endedAt: now,
+      );
+      await _loadMyPageData();
+    } catch (e) {
+      if (mounted) _showSnackBar(_cleanErrorMessage(e));
+    }
+  }
+
   Future<void> _handleDisasterSelected(int id) async {
     if (kDebugMode) debugPrint('[마이페이지] 재난 선택: userDisasterId=$id');
     await SelectedDisasterService.instance.select(id);
@@ -503,11 +517,10 @@ class MyPageState extends State<MyPage> {
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
                 width: double.infinity,
                 child: ChecklistProgessBar(
-                  // API는 0~1 스케일. ChecklistProgessBar는 0~100 기대하므로 *100.
-                  currentCheck: ((_recoveryProgress?.recoveryScore ??
-                              _homeSummary?.recoveryProgress ??
-                              0.0) *
-                          100)
+                  // 모든 진행률 값은 0~100 스케일. ChecklistProgessBar도 0~100 기대.
+                  currentCheck: (_recoveryProgress?.recoveryScore ??
+                          _homeSummary?.recoveryProgress ??
+                          0.0)
                       .clamp(0.0, 100.0),
                   text: '회복률',
                   textcolor: ColorStyles.white,
@@ -542,6 +555,7 @@ class MyPageState extends State<MyPage> {
                               SelectedDisasterService.instance.selectedId.value,
                           onDisasterSelected: _handleDisasterSelected,
                           onAddDisaster: _handleAddDisaster,
+                          onCloseDisaster: _handleCloseDisaster,
                         ),
                         const SizedBox(height: 16),
 
@@ -566,44 +580,6 @@ class MyPageState extends State<MyPage> {
                           isLoading: _isWithdrawLoading,
                           isDanger: true,
                         ),
-
-                        if (kDebugMode) ...[
-                          const SizedBox(height: 40),
-                          SizedBox(
-                            width: double.infinity,
-                            height: 54,
-                            child: ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: ColorStyles.white,
-                                foregroundColor: ColorStyles.main2,
-                                disabledBackgroundColor: ColorStyles.white
-                                    .withValues(alpha: 0.7),
-                                shadowColor: Colors.transparent,
-                                elevation: 0,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(7),
-                                  side: const BorderSide(
-                                    color: ColorStyles.main2,
-                                  ),
-                                ),
-                              ),
-                              onPressed: () {},
-                              child: _isLoadingTokens
-                                  ? const SizedBox(
-                                      width: 24,
-                                      height: 24,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        color: ColorStyles.main2,
-                                      ),
-                                    )
-                                  : Text(
-                                      'Withdraw 테스트 토큰 출력',
-                                      style: FontStyles.semi16,
-                                    ),
-                            ),
-                          ),
-                        ],
                       ],
                     ),
                   ),

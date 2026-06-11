@@ -23,9 +23,8 @@ class MyPageDropdown extends StatelessWidget {
   Color _borderColor() =>
       color == 'main1' ? ColorStyles.main1 : ColorStyles.main2;
 
-  String _arrowAsset() => color == 'main1'
-      ? 'assets/home/arrowGreen.svg'
-      : 'assets/home/arrow.svg';
+  String _arrowAsset() =>
+      color == 'main1' ? 'assets/home/arrowGreen.svg' : 'assets/home/arrow.svg';
 
   @override
   Widget build(BuildContext context) {
@@ -35,6 +34,7 @@ class MyPageDropdown extends StatelessWidget {
         : null;
 
     return Container(
+      width: 220,
       padding: const EdgeInsets.only(
         left: 16.0,
         right: 16.0,
@@ -48,6 +48,7 @@ class MyPageDropdown extends StatelessWidget {
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<int>(
+          isExpanded: true,
           value: safeValue,
           style: FontStyles.med14.copyWith(color: _borderColor()),
           icon: Row(
@@ -64,10 +65,7 @@ class MyPageDropdown extends StatelessWidget {
           dropdownColor: ColorStyles.white,
           onChanged: onChanged,
           items: List.generate(ids.length, (i) {
-            return DropdownMenuItem<int>(
-              value: ids[i],
-              child: Text(labels[i]),
-            );
+            return DropdownMenuItem<int>(value: ids[i], child: Text(labels[i]));
           }),
         ),
       ),
