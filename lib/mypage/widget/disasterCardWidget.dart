@@ -168,8 +168,6 @@ class DisasterCardWidget extends StatelessWidget {
                       onCloseDisaster?.call(selected.userDisasterId, 'CLOSE'),
                 ),
                 const SizedBox(width: 8),
-              ],
-              if (selected.status != 'ARCHIVED') ...[
                 _buildIconButton(
                   icon: Icons.archive_outlined,
                   tooltip: '보관',

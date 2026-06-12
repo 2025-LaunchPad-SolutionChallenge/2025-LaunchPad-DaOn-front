@@ -382,29 +382,78 @@ class MyPageState extends State<MyPage> {
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) {
-        return AlertDialog(
-          title: Text(title),
-          content: Text(content),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(dialogContext).pop(false);
-              },
-              child: const Text('취소'),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(dialogContext).pop(true);
-              },
-              child: Text(
-                confirmText,
-                style: TextStyle(
-                  color: isDanger ? Colors.red : ColorStyles.main2,
-                  fontWeight: FontWeight.w600,
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+          backgroundColor: ColorStyles.white,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: FontStyles.semi20.copyWith(color: ColorStyles.black1),
                 ),
-              ),
+                const SizedBox(height: 10),
+                Text(
+                  content,
+                  style: FontStyles.med16.copyWith(
+                    color: ColorStyles.grey1,
+                    height: 1.6,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => Navigator.of(dialogContext).pop(false),
+                        child: Container(
+                          height: 48,
+                          decoration: BoxDecoration(
+                            color: ColorStyles.secon1,
+                            borderRadius: BorderRadius.circular(7),
+                          ),
+                          alignment: Alignment.center,
+                          child: Text(
+                            '취소',
+                            style: FontStyles.semi16.copyWith(
+                              color: ColorStyles.black2,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => Navigator.of(dialogContext).pop(true),
+                        child: Container(
+                          height: 48,
+                          decoration: BoxDecoration(
+                            color: isDanger
+                                ? const Color(0xFFFF4B4B)
+                                : ColorStyles.main2,
+                            borderRadius: BorderRadius.circular(7),
+                          ),
+                          alignment: Alignment.center,
+                          child: Text(
+                            confirmText,
+                            style: FontStyles.semi16.copyWith(
+                              color: ColorStyles.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
-          ],
+          ),
         );
       },
     );

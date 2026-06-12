@@ -41,6 +41,7 @@ class ChecklistPageState extends State<ChecklistPage> {
 
   List<ChecklistItemModel> _items = [];
   bool _isLoading = false;
+  bool _hasAiGeneratedItem = false;
   String? _errorMessage;
   double _completionRate = 0.0;
   WeeklyChecklistProgress? _weeklyProgress;
@@ -116,6 +117,7 @@ class ChecklistPageState extends State<ChecklistPage> {
         setState(() {
           _items = result.items;
           _completionRate = result.completionRate;
+          _hasAiGeneratedItem = result.items.any((item) => item.isAiGenerated);
           _isLoading = false;
           _errorMessage = null;
         });
@@ -916,7 +918,7 @@ class ChecklistPageState extends State<ChecklistPage> {
     return Scaffold(
       backgroundColor: Colors.transparent,
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-      floatingActionButton: _selectedIndex == 0
+      floatingActionButton: _selectedIndex == 0 && !_hasAiGeneratedItem
           ? Padding(
               padding: const EdgeInsets.only(bottom: 80.0),
               child: AiChecklistFloatingButton(

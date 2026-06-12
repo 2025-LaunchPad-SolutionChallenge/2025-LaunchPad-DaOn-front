@@ -29,41 +29,49 @@ class ChecklistProgessBar extends StatefulWidget {
 class _ChecklistProgessBarState extends State<ChecklistProgessBar> {
   @override
   Widget build(BuildContext context) {
-    final double progress = widget.currentCheck / 100;
-    final String progressMain = (progress * 100).toStringAsFixed(1);
+    final double targetProgress = widget.currentCheck / 100;
 
-    return Column(
-      children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
+    return TweenAnimationBuilder<double>(
+      tween: Tween<double>(begin: 0.0, end: targetProgress),
+      duration: const Duration(milliseconds: 700),
+      curve: Curves.easeOut,
+      builder: (context, value, _) {
+        final String progressText = (value * 100).toStringAsFixed(1);
+        return Column(
           children: [
-            Text(
-              widget.text.toString(),
-              style: FontStyles.semi16.copyWith(
-                color: widget.text2color ?? ColorStyles.black2.withAlpha(180),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  widget.text.toString(),
+                  style: FontStyles.semi16.copyWith(
+                    color:
+                        widget.text2color ?? ColorStyles.black2.withAlpha(180),
+                  ),
+                ),
+                SizedBox(width: 6.0),
+                Text(
+                  '${progressText}%',
+                  style: FontStyles.med15.copyWith(color: widget.textcolor),
+                ),
+              ],
+            ),
+            SizedBox(height: 8.0),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(10.0),
+              child: LinearProgressIndicator(
+                value: value,
+                minHeight: 10.0,
+                backgroundColor: widget.backgroundcolor?.withAlpha(150),
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  widget.progresscolor!.withAlpha(180),
+                ),
               ),
             ),
-            SizedBox(width: 6.0),
-            Text(
-              '${progressMain}%',
-              style: FontStyles.med15.copyWith(color: widget.textcolor),
-            ),
+            SizedBox(height: 24.0),
           ],
-        ),
-        SizedBox(height: 8.0),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(10.0),
-          child: LinearProgressIndicator(
-            value: progress,
-            minHeight: 10.0,
-            backgroundColor: widget.backgroundcolor?.withAlpha(150),
-            valueColor: AlwaysStoppedAnimation<Color>(
-              widget.progresscolor!.withAlpha(180),
-            ),
-          ),
-        ),
-        SizedBox(height: 24.0),
-      ],
+        );
+      },
     );
   }
 }

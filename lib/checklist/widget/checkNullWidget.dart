@@ -10,6 +10,7 @@ class CheckNullWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
       children: [
         SvgPicture.asset('assets/checklist/checklist.svg'),
         SizedBox(height: 10.0),
@@ -43,6 +44,7 @@ class CheckNullWidget extends StatelessWidget {
             ],
           ),
         ),
+        SizedBox(height: 100.0),
       ],
     );
   }
