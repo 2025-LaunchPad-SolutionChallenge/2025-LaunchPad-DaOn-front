@@ -18,6 +18,7 @@ import 'package:project_daon/checklist/widget/itemBottomPopup.dart';
 import 'package:project_daon/checklist/widget/memoBottomPopup.dart';
 import 'package:project_daon/checklist/widget/pictureButton.dart';
 import 'package:project_daon/common/widget/roundToggleButton.dart';
+import 'package:project_daon/common/widget/skeletonBox.dart';
 import 'package:project_daon/common/widget/tapBarWidget.dart';
 import 'package:project_daon/core/service/selected_disaster_service.dart';
 import 'package:project_daon/home/api/homeApi.dart';
@@ -844,9 +845,39 @@ class ChecklistPageState extends State<ChecklistPage> {
     return Center(child: Image(image: AssetImage(asset)));
   }
 
+  Widget _buildChecklistSkeleton() {
+    const widths = [200.0, 160.0, 230.0, 140.0, 190.0];
+    return Column(
+      children: widths
+          .map(
+            (w) => Padding(
+              padding: const EdgeInsets.only(bottom: 14.0),
+              child: Row(
+                children: [
+                  SkeletonBox(
+                    width: 14,
+                    height: 14,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                  const SizedBox(width: 8),
+                  SkeletonBox(width: w, height: 14),
+                  const Spacer(),
+                  SkeletonBox(
+                    width: 28,
+                    height: 28,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ],
+              ),
+            ),
+          )
+          .toList(),
+    );
+  }
+
   Widget _buildChecklistTab() {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return _buildChecklistSkeleton();
     }
     if (_errorMessage != null) {
       return Center(
@@ -943,7 +974,7 @@ class ChecklistPageState extends State<ChecklistPage> {
                       ),
                     if (_selectedIndex == 0)
                       PictureButton(
-                        text: '생성하기',
+                        text: '추가하기',
                         onPressed: _userDisasterId != null
                             ? _showAddPopup
                             : null,

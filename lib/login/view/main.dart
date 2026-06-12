@@ -184,7 +184,7 @@ class _LoginPageState extends State<LoginPage> {
               ColorStyles.main3, // 하단의 연노랑
             ],
 
-            stops: [0.01, 0.8],
+            stops: [0.2, 0.8],
           ),
         ),
         child: SafeArea(

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:project_daon/common/widget/skeletonBox.dart';
 import 'package:project_daon/common/widget/yellowBackButton.dart';
 import 'package:project_daon/common/widget/Dropdwon.dart';
 import 'package:project_daon/core/service/selected_disaster_service.dart';
@@ -41,6 +42,7 @@ class HomePageState extends State<HomePage> {
   bool _fullTasksFetched = false; // true = _fullTasks에 유효한 데이터가 있음
   bool _fullTasksFetching = false; // true = 전체 할 일 요청 중
   bool _tasksInitiallyLoaded = false;
+  bool _isDisasterSwitching = false;
 
   final HomeApi _homeApi = HomeApi();
 
@@ -74,6 +76,7 @@ class HomePageState extends State<HomePage> {
             : null;
         _stage = null;
         _recoveryProgress = null;
+        _isDisasterSwitching = true;
       });
       _loadStage(id);
       // TODO: /api/v1/home/summary 및 /api/v1/home/today-tasks가 userDisasterId 쿼리 파라미터를
@@ -169,6 +172,7 @@ class HomePageState extends State<HomePage> {
     setState(() {
       if (stage != null) _stage = stage;
       if (progress != null) _recoveryProgress = progress;
+      _isDisasterSwitching = false;
     });
   }
 
@@ -296,6 +300,59 @@ class HomePageState extends State<HomePage> {
     return 'assets/home/exChar.png';
   }
 
+  Widget _buildStartBlockSkeleton() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SkeletonBox(width: 190, height: 22, isLight: true),
+        const SizedBox(height: 8),
+        SkeletonBox(width: 230, height: 22, isLight: true),
+        const SizedBox(height: 20),
+        Row(
+          children: [
+            SkeletonBox(
+              width: 100,
+              height: 42,
+              borderRadius: BorderRadius.circular(7),
+              isLight: true,
+            ),
+            const SizedBox(width: 8),
+            SkeletonBox(width: 80, height: 22, isLight: true),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCenterAreaSkeleton() {
+    return SkeletonBox(
+      width: 260,
+      height: 300,
+      borderRadius: BorderRadius.circular(24),
+      isLight: true,
+    );
+  }
+
+  Widget _buildTaskListSkeleton() {
+    const widths = [180.0, 220.0, 150.0, 200.0];
+    return Column(
+      children: List.generate(widths.length, (i) => Padding(
+        padding: const EdgeInsets.only(bottom: 14.0),
+        child: Row(
+          children: [
+            SkeletonBox(
+              width: 14,
+              height: 14,
+              borderRadius: BorderRadius.circular(2),
+            ),
+            const SizedBox(width: 8),
+            SkeletonBox(width: widths[i], height: 14),
+          ],
+        ),
+      )),
+    );
+  }
+
   Widget _buildTaskItem(TodayTaskItem item) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 14.0),
@@ -411,6 +468,8 @@ class HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    final bool isSkeletonVisible = !_tasksInitiallyLoaded || _isDisasterSwitching;
+
     final double dimOpacity =
         ((_sheetPosition - _minSheetSize) / (_maxSheetSize - _minSheetSize))
             .clamp(0.0, 1.0) *
@@ -482,46 +541,51 @@ class HomePageState extends State<HomePage> {
                           _selectedProgress = disaster.recoveryProgress;
                           _stage = null;
                           _recoveryProgress = null;
+                          _isDisasterSwitching = true;
                         });
                         _loadStage(disaster.userDisasterId);
                       },
                     ),
                     const SizedBox(height: 12.0),
-                    StartBlock(
-                      name: _summary?.userName,
-                      myStep: _stage?.stageName,
-                      description: _stage?.description,
-                    ),
+                    isSkeletonVisible
+                        ? _buildStartBlockSkeleton()
+                        : StartBlock(
+                            name: _summary?.userName,
+                            myStep: _stage?.stageName,
+                            description: _stage?.description,
+                          ),
                     Expanded(
                       child: Center(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Image.asset(
-                              _charImagePath(),
-                              errorBuilder: (_, __, ___) =>
-                                  Image.asset('assets/home/exChar.png'),
-                              width: 240,
-                            ),
-                            const SizedBox(height: 18.0),
-                            SemiCircleProgressBar(
-                              percentage: progress.clamp(0.0, 1.0),
-                            ),
-                            const SizedBox(height: 25.0),
-                            AbsorbPointer(
-                              absorbing: _todayCheckDone,
-                              child: Opacity(
-                                opacity: _todayCheckDone ? 0.55 : 1.0,
-                                child: YellowBackButton(
-                                  text: _todayCheckDone
-                                      ? "오늘의 상태 체크 완료"
-                                      : "오늘의 상태 체크",
-                                  onPressed: _navigateToCheck,
-                                ),
+                        child: isSkeletonVisible
+                            ? _buildCenterAreaSkeleton()
+                            : Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Image.asset(
+                                    _charImagePath(),
+                                    errorBuilder: (_, __, ___) =>
+                                        Image.asset('assets/home/exChar.png'),
+                                    width: 240,
+                                  ),
+                                  const SizedBox(height: 18.0),
+                                  SemiCircleProgressBar(
+                                    percentage: progress.clamp(0.0, 1.0),
+                                  ),
+                                  const SizedBox(height: 25.0),
+                                  AbsorbPointer(
+                                    absorbing: _todayCheckDone,
+                                    child: Opacity(
+                                      opacity: _todayCheckDone ? 0.55 : 1.0,
+                                      child: YellowBackButton(
+                                        text: _todayCheckDone
+                                            ? "오늘의 상태 체크 완료"
+                                            : "오늘의 상태 체크",
+                                        onPressed: _navigateToCheck,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ),
-                          ],
-                        ),
                       ),
                     ),
                   ],
@@ -609,7 +673,9 @@ class HomePageState extends State<HomePage> {
                                   fontSize: 18.0,
                                 ),
                               ),
-                              if (_summary != null)
+                              if (!_tasksInitiallyLoaded)
+                                SkeletonBox(width: 40, height: 14, isLight: false)
+                              else if (_summary != null)
                                 Text(
                                   '${_summary!.todayCompletedTasks}/${_summary!.todayTotalTasks}',
                                   style: FontStyles.med14.copyWith(
@@ -623,15 +689,7 @@ class HomePageState extends State<HomePage> {
                           // 할 일 목록
                           if (!_tasksInitiallyLoaded ||
                               (displayTasks.isEmpty && _fullTasksFetching))
-                            const Center(
-                              child: Padding(
-                                padding: EdgeInsets.symmetric(vertical: 16.0),
-                                child: CircularProgressIndicator(
-                                  color: ColorStyles.main1,
-                                  strokeWidth: 2.0,
-                                ),
-                              ),
-                            )
+                            _buildTaskListSkeleton()
                           else if (displayTasks.isEmpty)
                             Padding(
                               padding: const EdgeInsets.symmetric(
@@ -646,17 +704,8 @@ class HomePageState extends State<HomePage> {
                             )
                           else ...[
                             ...displayTasks.map(_buildTaskItem),
-                            // 확장 상태에서 전체 할 일 로딩 중이면 목록 아래 인디케이터
                             if (_isExpanded && _fullTasksFetching)
-                              const Center(
-                                child: Padding(
-                                  padding: EdgeInsets.only(top: 8.0),
-                                  child: CircularProgressIndicator(
-                                    color: ColorStyles.main1,
-                                    strokeWidth: 2.0,
-                                  ),
-                                ),
-                              ),
+                              _buildTaskListSkeleton(),
                           ],
                         ],
                       ),

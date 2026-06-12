@@ -15,6 +15,7 @@ import 'package:project_daon/mypage/widget/recoverydashboardWidget.dart';
 import 'package:project_daon/onboarding/model/onboardingLocation.dart';
 import 'package:project_daon/onboarding/view/onboardingController.dart';
 import 'package:project_daon/onboarding/view/onboardingLocationConfirmPage.dart';
+import 'package:project_daon/common/widget/skeletonBox.dart';
 import 'package:project_daon/ui/colorStyles.dart';
 import 'package:project_daon/ui/fontStyles.dart';
 
@@ -538,11 +539,23 @@ class MyPageState extends State<MyPage> {
           child: Column(
             children: [
               _isProfileLoading
-                  ? const SizedBox(
-                      height: 210,
+                  ? SizedBox(
+                      height: 225,
                       child: Center(
-                        child: CircularProgressIndicator(
-                          color: ColorStyles.white,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            SkeletonBox(
+                              width: 100,
+                              height: 100,
+                              borderRadius: BorderRadius.circular(50),
+                              isLight: true,
+                            ),
+                            const SizedBox(height: 10),
+                            SkeletonBox(width: 120, height: 20, isLight: true),
+                            const SizedBox(height: 8),
+                            SkeletonBox(width: 170, height: 15, isLight: true),
+                          ],
                         ),
                       ),
                     )
