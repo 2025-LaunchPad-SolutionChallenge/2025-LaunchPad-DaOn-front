@@ -137,7 +137,9 @@ class MyPageState extends State<MyPage> {
           .then<void>((r) {
             disasters = r.content;
             if (kDebugMode) {
-              debugPrint('[마이페이지] 재난 목록: ${disasters.length}개 (총 ${r.totalElements}건)');
+              debugPrint(
+                '[마이페이지] 재난 목록: ${disasters.length}개 (총 ${r.totalElements}건)',
+              );
               for (final d in disasters) {
                 debugPrint(
                   '  ㄴ id=${d.userDisasterId} | ${d.disasterTypeName} | ${d.status} | 회복률=${d.recoveryProgress.toStringAsFixed(1)}% | ${d.occurredAt} | 장소=${d.address ?? '없음'}',
@@ -523,7 +525,13 @@ class MyPageState extends State<MyPage> {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [ColorStyles.main2, ColorStyles.main3],
+
+            colors: [
+              ColorStyles.main2, // 상단의 민트/그린
+              ColorStyles.main3, // 하단의 연노랑
+            ],
+
+            stops: [0.01, 0.8],
           ),
         ),
         child: SafeArea(
@@ -552,10 +560,11 @@ class MyPageState extends State<MyPage> {
                 width: double.infinity,
                 child: ChecklistProgessBar(
                   // 모든 진행률 값은 0~100 스케일. ChecklistProgessBar도 0~100 기대.
-                  currentCheck: (_recoveryProgress?.recoveryScore ??
-                          _homeSummary?.recoveryProgress ??
-                          0.0)
-                      .clamp(0.0, 100.0),
+                  currentCheck:
+                      (_recoveryProgress?.recoveryScore ??
+                              _homeSummary?.recoveryProgress ??
+                              0.0)
+                          .clamp(0.0, 100.0),
                   text: '회복률',
                   textcolor: ColorStyles.white,
                   progresscolor: ColorStyles.main3,

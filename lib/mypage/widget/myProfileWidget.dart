@@ -32,7 +32,7 @@ class MyProfileWidget extends StatelessWidget {
     if (disasterTypeName != null && disasterTypeName!.trim().isNotEmpty) {
       parts.add('${disasterTypeName!.trim()} 피해');
     }
-    return parts.join('  /  ');
+    return parts.join('   /   ');
   }
 
   Widget _buildProfileImage() {
@@ -115,7 +115,7 @@ class MyProfileWidget extends StatelessWidget {
             const SizedBox(height: 4.0),
             Text(
               infoLine,
-              style: FontStyles.med14.copyWith(
+              style: FontStyles.med15.copyWith(
                 color: ColorStyles.white.withValues(alpha: 0.85),
               ),
             ),

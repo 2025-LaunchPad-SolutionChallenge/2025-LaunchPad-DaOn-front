@@ -445,7 +445,13 @@ class HomePageState extends State<HomePage> {
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [ColorStyles.main2, ColorStyles.main3],
+
+                colors: [
+                  ColorStyles.main2, // 상단의 민트/그린
+                  ColorStyles.main3, // 하단의 연노랑
+                ],
+
+                stops: [0.01, 0.8],
               ),
             ),
             padding: EdgeInsets.only(bottom: bottomSheetHeight),
@@ -497,11 +503,11 @@ class HomePageState extends State<HomePage> {
                                   Image.asset('assets/home/exChar.png'),
                               width: 240,
                             ),
-                            const SizedBox(height: 16.0),
+                            const SizedBox(height: 18.0),
                             SemiCircleProgressBar(
                               percentage: progress.clamp(0.0, 1.0),
                             ),
-                            const SizedBox(height: 20.0),
+                            const SizedBox(height: 25.0),
                             AbsorbPointer(
                               absorbing: _todayCheckDone,
                               child: Opacity(

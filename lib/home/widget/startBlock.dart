@@ -33,7 +33,7 @@ class StartBlock extends StatelessWidget {
               padding: EdgeInsets.symmetric(horizontal: 12.0, vertical: 4.0),
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: ColorStyles.main1,
+                color: ColorStyles.main1.withAlpha(150),
                 borderRadius: BorderRadius.circular(7.0),
               ),
               child: Text(

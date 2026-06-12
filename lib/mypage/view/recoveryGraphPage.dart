@@ -113,13 +113,13 @@ class _RecoveryGraphPageState extends State<RecoveryGraphPage> {
               child: CircularProgressIndicator(color: ColorStyles.main2),
             )
           : SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     '${_fmtDisplay(_startDate)} ~ ${_fmtDisplay(_endDate)}',
-                    style: FontStyles.med14.copyWith(color: ColorStyles.main1),
+                    style: FontStyles.med15.copyWith(color: ColorStyles.main1),
                   ),
                   const SizedBox(height: 16),
                   _buildGraph(),

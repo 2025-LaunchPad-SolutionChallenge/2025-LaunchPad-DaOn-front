@@ -34,7 +34,9 @@ class _LoginPageState extends State<LoginPage> {
 
       debugPrint('[토큰 검사] length=${token.length}');
       debugPrint('[토큰 검사] dotCount=${'.'.allMatches(token).length}');
-      debugPrint('[토큰 검사] startsWith=${token.length >= 10 ? token.substring(0, 10) : token}');
+      debugPrint(
+        '[토큰 검사] startsWith=${token.length >= 10 ? token.substring(0, 10) : token}',
+      );
 
       if (parts.length != 3) {
         debugPrint('[토큰 검사] JWT 형식 아님');
@@ -76,16 +78,16 @@ class _LoginPageState extends State<LoginPage> {
 
   /// Google → Firebase 인증 후 Firebase ID Token 반환
   Future<String> _getFreshFirebaseToken() async {
-    final GoogleSignInAccount googleUser = await GoogleSignIn.instance.authenticate();
+    final GoogleSignInAccount googleUser = await GoogleSignIn.instance
+        .authenticate();
     final GoogleSignInAuthentication googleAuth = googleUser.authentication;
 
     final OAuthCredential credential = GoogleAuthProvider.credential(
       idToken: googleAuth.idToken,
     );
 
-    final UserCredential userCredential = await FirebaseAuth.instance.signInWithCredential(
-      credential,
-    );
+    final UserCredential userCredential = await FirebaseAuth.instance
+        .signInWithCredential(credential);
 
     final User? user = userCredential.user;
     if (user == null) {
@@ -159,9 +161,9 @@ class _LoginPageState extends State<LoginPage> {
 
   void _showError(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -169,13 +171,20 @@ class _LoginPageState extends State<LoginPage> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       body: Container(
+        padding: EdgeInsets.symmetric(vertical: 180),
         width: double.infinity,
         height: double.infinity,
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            begin: Alignment(0.00, 0.00),
-            end: Alignment(1.00, 0.71),
-            colors: [ColorStyles.main2, ColorStyles.main3],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+
+            colors: [
+              ColorStyles.main2, // 상단의 민트/그린
+              ColorStyles.main3, // 하단의 연노랑
+            ],
+
+            stops: [0.01, 0.8],
           ),
         ),
         child: SafeArea(
@@ -185,6 +194,9 @@ class _LoginPageState extends State<LoginPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                Expanded(
+                  child: Center(child: Image.asset('assets/login/logo.png')),
+                ),
                 Expanded(
                   child: Center(
                     child: Column(
@@ -204,7 +216,7 @@ class _LoginPageState extends State<LoginPage> {
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(7),
                               ),
-                              padding: EdgeInsets.zero,
+                              padding: EdgeInsets.symmetric(horizontal: 16.0),
                             ),
                             onPressed: _isLoading ? null : _handleGoogleLogin,
                             child: _isLoading
@@ -216,9 +228,24 @@ class _LoginPageState extends State<LoginPage> {
                                       color: ColorStyles.main2,
                                     ),
                                   )
-                                : Text(
-                                    'Google 계정으로 로그인',
-                                    style: FontStyles.semi16,
+                                : Row(
+                                    children: [
+                                      Image(
+                                        image: AssetImage(
+                                          'assets/login/google.png',
+                                        ),
+                                      ),
+                                      Expanded(
+                                        child: Center(
+                                          child: Text(
+                                            'Google 계정으로 로그인',
+                                            style: FontStyles.semi16.copyWith(
+                                              color: ColorStyles.black2,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                           ),
                         ),
