@@ -1,6 +1,7 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:project_daon/common/widget/DetailAppBar.dart';
 import 'package:project_daon/mypage/api/recoveryApi.dart';
 import 'package:project_daon/ui/colorStyles.dart';
 import 'package:project_daon/ui/fontStyles.dart';
@@ -105,20 +106,8 @@ class _RecoveryGraphPageState extends State<RecoveryGraphPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: ColorStyles.black1),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        title: Text(
-          '회복 그래프',
-          style: FontStyles.semi20.copyWith(color: ColorStyles.black1),
-        ),
-        centerTitle: true,
-      ),
+      backgroundColor: ColorStyles.white,
+      appBar: DetailAppBar(title: '회복 그래프'),
       body: _isLoading
           ? const Center(
               child: CircularProgressIndicator(color: ColorStyles.main2),
@@ -134,14 +123,14 @@ class _RecoveryGraphPageState extends State<RecoveryGraphPage> {
                   ),
                   const SizedBox(height: 16),
                   _buildGraph(),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 24),
                   Text(
                     'Timeline',
                     style: FontStyles.semi20.copyWith(
                       color: ColorStyles.black1,
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 4),
                   _buildTimeline(),
                   const SizedBox(height: 32),
                 ],
@@ -223,7 +212,7 @@ class _RecoveryGraphPageState extends State<RecoveryGraphPage> {
                     meta: meta,
                     child: Text(
                       '${labelDate.month}월',
-                      style: FontStyles.med12.copyWith(
+                      style: FontStyles.med14.copyWith(
                         color: ColorStyles.grey1,
                       ),
                     ),
@@ -294,24 +283,28 @@ class _RecoveryGraphPageState extends State<RecoveryGraphPage> {
       child: Theme(
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
         child: ExpansionTile(
-        backgroundColor: Colors.white,
-        collapsedBackgroundColor: Colors.white,
-        tilePadding: const EdgeInsets.symmetric(vertical: 4),
-        childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-        title: Row(
-          children: [
-            Text(
-              dateLabel,
-              style: FontStyles.semi16.copyWith(color: ColorStyles.black2),
-            ),
-            const SizedBox(width: 8),
-            Text(
-              '${day.completed}/${day.total}',
-              style: FontStyles.med12.copyWith(color: ColorStyles.grey1),
-            ),
-          ],
-        ),
-        children: day.items.map(_buildChecklistItem).toList(),
+          backgroundColor: ColorStyles.white,
+          collapsedBackgroundColor: ColorStyles.white,
+          tilePadding: EdgeInsets.fromLTRB(8, 0, 0, 0),
+          childrenPadding: const EdgeInsets.fromLTRB(12, 0, 8, 12),
+          title: Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                dateLabel,
+                style: FontStyles.semi16.copyWith(
+                  fontSize: 18,
+                  color: ColorStyles.black2,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '${day.completed}/${day.total}',
+                style: FontStyles.med15.copyWith(color: ColorStyles.grey1),
+              ),
+            ],
+          ),
+          children: day.items.map(_buildChecklistItem).toList(),
         ),
       ),
     );
@@ -319,7 +312,7 @@ class _RecoveryGraphPageState extends State<RecoveryGraphPage> {
 
   Widget _buildChecklistItem(TimelineChecklistItem item) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10.0),
+      padding: const EdgeInsets.only(bottom: 12.0),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -337,6 +330,17 @@ class _RecoveryGraphPageState extends State<RecoveryGraphPage> {
             ),
           ),
           const SizedBox(width: 8),
+          if (item.isAiGenerated) ...[
+            const Padding(
+              padding: EdgeInsets.only(top: 2.0),
+              child: Icon(
+                Icons.auto_awesome,
+                size: 15,
+                color: Colors.blueAccent,
+              ),
+            ),
+            const SizedBox(width: 8),
+          ],
           Expanded(
             child: Text(
               item.title,

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:project_daon/home/api/homeApi.dart';
 import 'package:project_daon/mypage/widget/myPageDropdown.dart';
 import 'package:project_daon/ui/colorStyles.dart';
+import 'package:project_daon/ui/fontStyles.dart';
 
 class DisasterCardWidget extends StatelessWidget {
   final List<UserDisasterSummary> records;
@@ -67,10 +68,9 @@ class DisasterCardWidget extends StatelessWidget {
     final ids = unique.map((r) => r.userDisasterId).toList();
     final labels = unique.map((r) => r.displayLabel).toList();
 
-    final validSelectedId =
-        (selectedId != null && ids.contains(selectedId))
-            ? selectedId
-            : (ids.isNotEmpty ? ids.first : null);
+    final validSelectedId = (selectedId != null && ids.contains(selectedId))
+        ? selectedId
+        : (ids.isNotEmpty ? ids.first : null);
 
     final selected = unique.firstWhere(
       (r) => r.userDisasterId == validSelectedId,
@@ -86,7 +86,7 @@ class DisasterCardWidget extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16.0),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: ColorStyles.white,
         border: Border.all(color: ColorStyles.main2),
         borderRadius: BorderRadius.circular(8.0),
       ),
@@ -135,25 +135,24 @@ class DisasterCardWidget extends StatelessWidget {
                   alignment: Alignment.centerRight,
                   child: Text(
                     _statusLabel(selected.status),
-                    style: const TextStyle(
-                      color: ColorStyles.main2,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: FontStyles.med14.copyWith(color: ColorStyles.main2),
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          if (selected.location?.address != null)
+          const SizedBox(height: 8),
+          if (selected.address != null && selected.address!.isNotEmpty) ...[
             Text(
-              selected.location!.address!,
-              style: const TextStyle(color: Colors.grey, fontSize: 12),
+              selected.address!,
+              style: FontStyles.med12.copyWith(color: ColorStyles.grey1),
+              overflow: TextOverflow.ellipsis,
             ),
-          const SizedBox(height: 4),
+            const SizedBox(height: 4),
+          ],
           Text(
             '회복률: ${selected.recoveryProgress.toStringAsFixed(1)}%',
-            style: const TextStyle(fontSize: 14, color: Colors.black87),
+            style: FontStyles.med16.copyWith(color: ColorStyles.black2),
           ),
           const SizedBox(height: 17),
           // ── 상태 변경 버튼 + 회복 대시보드 버튼 ──
@@ -165,10 +164,8 @@ class DisasterCardWidget extends StatelessWidget {
                   icon: Icons.check_circle_outline,
                   tooltip: '회복 완료',
                   color: ColorStyles.main2,
-                  onTap: () => onCloseDisaster?.call(
-                    selected.userDisasterId,
-                    'CLOSE',
-                  ),
+                  onTap: () =>
+                      onCloseDisaster?.call(selected.userDisasterId, 'CLOSE'),
                 ),
                 const SizedBox(width: 8),
               ],
@@ -177,16 +174,14 @@ class DisasterCardWidget extends StatelessWidget {
                   icon: Icons.archive_outlined,
                   tooltip: '보관',
                   color: ColorStyles.grey1,
-                  onTap: () => onCloseDisaster?.call(
-                    selected.userDisasterId,
-                    'ARCHIVE',
-                  ),
+                  onTap: () =>
+                      onCloseDisaster?.call(selected.userDisasterId, 'ARCHIVE'),
                 ),
                 const SizedBox(width: 8),
               ],
               ElevatedButton(
                 onPressed: validSelectedId != null
-                    ? () => onDashboardTap?.call(validSelectedId!)
+                    ? () => onDashboardTap?.call(validSelectedId)
                     : null,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: ColorStyles.main2,
@@ -196,9 +191,9 @@ class DisasterCardWidget extends StatelessWidget {
                     borderRadius: BorderRadius.circular(20.0),
                   ),
                 ),
-                child: const Text(
+                child: Text(
                   '회복 대시보드',
-                  style: TextStyle(color: Colors.white),
+                  style: FontStyles.med16.copyWith(color: ColorStyles.white),
                 ),
               ),
             ],

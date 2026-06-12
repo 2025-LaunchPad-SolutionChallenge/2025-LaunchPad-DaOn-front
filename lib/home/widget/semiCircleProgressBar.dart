@@ -17,7 +17,7 @@ class SemiCircleProgressBar extends StatelessWidget {
         lineWidth: 37.0,
         percent: percentage,
         arcType: ArcType.HALF,
-        arcBackgroundColor: Color(0xCCF2F3F6),
+        arcBackgroundColor: ColorStyles.white.withAlpha(100),
         progressColor: ColorStyles.main1,
         circularStrokeCap: CircularStrokeCap.butt,
 

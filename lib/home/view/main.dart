@@ -421,7 +421,10 @@ class HomePageState extends State<HomePage> {
 
     // 모든 진행률 값은 0~100 스케일. SemiCircleProgressBar는 0~1 기대하므로 /100.
     final double progress =
-        (_recoveryProgress?.recoveryScore ?? _selectedProgress ?? _summary?.recoveryProgress ?? 0)
+        (_recoveryProgress?.recoveryScore ??
+                _selectedProgress ??
+                _summary?.recoveryProgress ??
+                0)
             .clamp(0.0, 100.0) /
         100.0;
 
@@ -583,7 +586,7 @@ class HomePageState extends State<HomePage> {
                               height: 4,
                               margin: const EdgeInsets.only(bottom: 16),
                               decoration: BoxDecoration(
-                                color: Colors.grey[300],
+                                color: ColorStyles.grey2,
                                 borderRadius: BorderRadius.circular(2),
                               ),
                             ),
@@ -597,6 +600,7 @@ class HomePageState extends State<HomePage> {
                                 '오늘의 할 일',
                                 style: FontStyles.semi16.copyWith(
                                   color: ColorStyles.black2,
+                                  fontSize: 18.0,
                                 ),
                               ),
                               if (_summary != null)
@@ -608,7 +612,7 @@ class HomePageState extends State<HomePage> {
                                 ),
                             ],
                           ),
-                          const SizedBox(height: 20),
+                          const SizedBox(height: 15),
 
                           // 할 일 목록
                           if (!_tasksInitiallyLoaded ||

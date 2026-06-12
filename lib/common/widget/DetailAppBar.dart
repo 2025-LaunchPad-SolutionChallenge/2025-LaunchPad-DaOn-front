@@ -4,7 +4,9 @@ import 'package:project_daon/ui/colorStyles.dart';
 import 'package:project_daon/ui/fontStyles.dart';
 
 class DetailAppBar extends StatelessWidget implements PreferredSizeWidget {
-  const DetailAppBar({super.key});
+  final String title;
+
+  const DetailAppBar({super.key, this.title = 'AI 체크리스트 생성'});
 
   @override
   Size get preferredSize => const Size.fromHeight(60.0);
@@ -13,7 +15,7 @@ class DetailAppBar extends StatelessWidget implements PreferredSizeWidget {
   Widget build(BuildContext context) {
     return AppBar(
       title: Text(
-        'AI 체크리스트 생성',
+        title,
         style: FontStyles.semi16.copyWith(
           fontSize: 18,
           color: ColorStyles.black1,

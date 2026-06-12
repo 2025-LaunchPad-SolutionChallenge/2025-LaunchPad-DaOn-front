@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:project_daon/common/widget/DetailAppBar.dart';
 import 'package:project_daon/common/widget/gradientButton.dart';
 import 'package:project_daon/common/widget/textFieldWidget.dart';
 import 'package:project_daon/mypage/api/mypageApi.dart';
@@ -352,9 +353,9 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
                 decoration: BoxDecoration(
                   color: ColorStyles.main1,
                   shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 2),
+                  border: Border.all(color: ColorStyles.white, width: 2),
                 ),
-                child: const Icon(Icons.edit, color: Colors.white, size: 14),
+                child: const Icon(Icons.edit, color: ColorStyles.white, size: 14),
               ),
           ],
         ),
@@ -418,7 +419,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
                       onPressed: _handleReverify,
                       style: OutlinedButton.styleFrom(
                         foregroundColor: _isReverified
-                            ? Colors.white
+                            ? ColorStyles.white
                             : ColorStyles.main1,
                         backgroundColor: _isReverified
                             ? ColorStyles.main1
@@ -441,7 +442,10 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
           const SizedBox(height: 6),
           Text(
             '거주지 재인증이 완료되었습니다.',
-            style: TextStyle(fontSize: 13, color: ColorStyles.main1),
+            style: FontStyles.med14.copyWith(
+              fontSize: 13,
+              color: ColorStyles.main1,
+            ),
           ),
         ],
       ],
@@ -451,14 +455,8 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('프로필 수정', style: FontStyles.semi16),
-        backgroundColor: Colors.white,
-        foregroundColor: ColorStyles.black2,
-        elevation: 0,
-        centerTitle: true,
-      ),
-      backgroundColor: Colors.white,
+      appBar: DetailAppBar(title: '프로필 수정'),
+      backgroundColor: ColorStyles.white,
       body: SafeArea(
         child: Column(
           children: [
@@ -519,7 +517,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
                       height: 24,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        color: Colors.white,
+                        color: ColorStyles.white,
                       ),
                     ),
                 ],

@@ -51,12 +51,14 @@ class TimelineChecklistItem {
   final String title;
   final bool isCompleted;
   final int priority;
+  final bool isAiGenerated;
 
   TimelineChecklistItem({
     required this.checklistItemId,
     required this.title,
     required this.isCompleted,
     required this.priority,
+    required this.isAiGenerated,
   });
 
   factory TimelineChecklistItem.fromJson(Map<String, dynamic> json) {
@@ -65,6 +67,7 @@ class TimelineChecklistItem {
       title: json['title']?.toString() ?? '',
       isCompleted: json['isCompleted'] as bool? ?? false,
       priority: (json['priority'] as num?)?.toInt() ?? 2,
+      isAiGenerated: json['isAiGenerated'] as bool? ?? false,
     );
   }
 }

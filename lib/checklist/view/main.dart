@@ -172,7 +172,11 @@ class ChecklistPageState extends State<ChecklistPage> {
   }
 
   Future<void> _refreshAll() async {
-    await Future.wait([_loadChecklist(), _loadArchive(), _loadWeeklyProgress()]);
+    await Future.wait([
+      _loadChecklist(),
+      _loadArchive(),
+      _loadWeeklyProgress(),
+    ]);
   }
 
   // ── 체크리스트 CRUD ───────────────────────────────────────────
@@ -899,6 +903,7 @@ class ChecklistPageState extends State<ChecklistPage> {
             children: [
               ChecklistProgessBar(
                 currentCheck: _weeklyProgress?.completionRate ?? 0.0,
+                text2color: ColorStyles.black2,
               ),
               ChecklistWeekWidget(
                 selectedDate: _currentSelectedDate,

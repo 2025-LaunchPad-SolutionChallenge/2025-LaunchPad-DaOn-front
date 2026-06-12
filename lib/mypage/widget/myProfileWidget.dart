@@ -43,8 +43,8 @@ class MyProfileWidget extends StatelessWidget {
         height: 100,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: Colors.white.withAlpha(100),
-          border: Border.all(color: Colors.white.withAlpha(100), width: 4),
+          color: ColorStyles.white.withAlpha(100),
+          border: Border.all(color: ColorStyles.white.withAlpha(100), width: 4),
         ),
         child: ClipOval(
           child: Image.network(
@@ -93,17 +93,16 @@ class MyProfileWidget extends StatelessWidget {
                     color: Colors.white.withValues(alpha: 0.25),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Row(
+                  child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.verified, color: Colors.white, size: 13),
+                      Icon(Icons.verified, color: ColorStyles.white, size: 13),
                       SizedBox(width: 3),
                       Text(
                         '거주 인증',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 11,
+                        style: FontStyles.med11.copyWith(
                           fontWeight: FontWeight.w600,
+                          color: ColorStyles.white,
                         ),
                       ),
                     ],
@@ -117,7 +116,7 @@ class MyProfileWidget extends StatelessWidget {
             Text(
               infoLine,
               style: FontStyles.med14.copyWith(
-                color: Colors.white.withValues(alpha: 0.85),
+                color: ColorStyles.white.withValues(alpha: 0.85),
               ),
             ),
           ],

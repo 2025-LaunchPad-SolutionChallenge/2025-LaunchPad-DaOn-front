@@ -12,7 +12,9 @@ import 'package:project_daon/mypage/view/profileEditPage.dart';
 import 'package:project_daon/mypage/widget/myPageAppBarWidget.dart';
 import 'package:project_daon/mypage/widget/myProfileWidget.dart';
 import 'package:project_daon/mypage/widget/recoverydashboardWidget.dart';
+import 'package:project_daon/onboarding/model/onboardingLocation.dart';
 import 'package:project_daon/onboarding/view/onboardingController.dart';
+import 'package:project_daon/onboarding/view/onboardingLocationConfirmPage.dart';
 import 'package:project_daon/ui/colorStyles.dart';
 import 'package:project_daon/ui/fontStyles.dart';
 
@@ -134,7 +136,14 @@ class MyPageState extends State<MyPage> {
           .getDisasterList()
           .then<void>((r) {
             disasters = r.content;
-            if (kDebugMode) debugPrint('[마이페이지] 재난 목록: ${disasters.length}개');
+            if (kDebugMode) {
+              debugPrint('[마이페이지] 재난 목록: ${disasters.length}개 (총 ${r.totalElements}건)');
+              for (final d in disasters) {
+                debugPrint(
+                  '  ㄴ id=${d.userDisasterId} | ${d.disasterTypeName} | ${d.status} | 회복률=${d.recoveryProgress.toStringAsFixed(1)}% | ${d.occurredAt} | 장소=${d.address ?? '없음'}',
+                );
+              }
+            }
           })
           .catchError((Object e) {
             if (kDebugMode) debugPrint('[마이페이지] 재난 목록 조회 실패: $e');
@@ -213,12 +222,35 @@ class MyPageState extends State<MyPage> {
       return;
     }
 
-    if (kDebugMode) debugPrint('[마이페이지] 재난 추가 온보딩 시작');
+    if (kDebugMode) debugPrint('[마이페이지] 재난 추가 — 위치 수집 시작');
 
+    // Step 1: 재난 발생 위치 수집
+    final locationResult = await Navigator.push<LocationConfirmResult>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const OnboardingLocationConfirmPage(
+          initialQuery: '',
+          confirmLabel: '다음',
+        ),
+      ),
+    );
+
+    if (!mounted) return;
+    if (locationResult == null) return; // 사용자가 취소
+
+    if (kDebugMode) {
+      debugPrint('[마이페이지] 위치 수집 완료: ${locationResult.location.displayAddress}');
+      debugPrint('[마이페이지] 재난 추가 온보딩 시작');
+    }
+
+    // Step 2: 재난 정보 입력
     final newId = await Navigator.push<int?>(
       context,
       MaterialPageRoute(
-        builder: (_) => const OnboardingController(addDisasterMode: true),
+        builder: (_) => OnboardingController(
+          addDisasterMode: true,
+          locationResult: locationResult,
+        ),
       ),
     );
 
@@ -501,7 +533,9 @@ class MyPageState extends State<MyPage> {
                   ? const SizedBox(
                       height: 210,
                       child: Center(
-                        child: CircularProgressIndicator(color: Colors.white),
+                        child: CircularProgressIndicator(
+                          color: ColorStyles.white,
+                        ),
                       ),
                     )
                   : MyProfileWidget(

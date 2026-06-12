@@ -28,7 +28,6 @@ class StateToggleWidget extends StatelessWidget {
       child: Text(
         label,
         style: FontStyles.med14.copyWith(
-          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
           color: isSelected ? ColorStyles.main2 : ColorStyles.grey1,
         ),
       ),
@@ -41,9 +40,12 @@ class StateToggleWidget extends StatelessWidget {
     for (int i = 0; i < _options.length; i++) {
       if (i > 0) {
         children.add(
-          const Padding(
+          Padding(
             padding: EdgeInsets.symmetric(horizontal: 6.0),
-            child: Text('|', style: TextStyle(color: ColorStyles.grey1)),
+            child: Text(
+              '|',
+              style: FontStyles.med14.copyWith(color: ColorStyles.grey1),
+            ),
           ),
         );
       }

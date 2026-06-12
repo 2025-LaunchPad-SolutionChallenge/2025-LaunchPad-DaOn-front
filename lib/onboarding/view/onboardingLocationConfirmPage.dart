@@ -11,8 +11,13 @@ import 'package:project_daon/ui/colorStyles.dart';
 
 class OnboardingLocationConfirmPage extends StatefulWidget {
   final String initialQuery;
+  final String confirmLabel;
 
-  const OnboardingLocationConfirmPage({super.key, required this.initialQuery});
+  const OnboardingLocationConfirmPage({
+    super.key,
+    required this.initialQuery,
+    this.confirmLabel = '거주지 인증하기',
+  });
 
   @override
   State<OnboardingLocationConfirmPage> createState() =>
@@ -460,7 +465,7 @@ class _OnboardingLocationConfirmPageState
                             alignment: Alignment.center,
                             children: [
                               GradientButton(
-                                text: _isVerifying ? '' : '거주지 인증하기',
+                                text: _isVerifying ? '' : widget.confirmLabel,
                                 onPressed:
                                     _selectedLocation == null || _isVerifying
                                     ? null

@@ -166,6 +166,7 @@ class UserDisasterSummary {
   final String status;
   final String occurredAt;
   final String? endedAt;
+  final String? address;
   final RecoveryStageInDisaster? recoveryStage;
   final double recoveryProgress;
   final DisasterLocation? location;
@@ -178,6 +179,7 @@ class UserDisasterSummary {
     required this.status,
     required this.occurredAt,
     this.endedAt,
+    this.address,
     this.recoveryStage,
     required this.recoveryProgress,
     this.location,
@@ -192,6 +194,7 @@ class UserDisasterSummary {
       status: json['status']?.toString() ?? '',
       occurredAt: json['occurredAt']?.toString() ?? '',
       endedAt: json['endedAt']?.toString(),
+      address: json['address']?.toString(),
       recoveryStage: json['recoveryStage'] != null
           ? RecoveryStageInDisaster.fromJson(
               Map<String, dynamic>.from(json['recoveryStage'] as Map),
@@ -378,11 +381,14 @@ class HomeApi {
   }
 
   Future<DisasterListResponse> getDisasterList() async {
-    if (kDebugMode) debugPrint('[홈] 재난 목록 조회');
+    if (kDebugMode) debugPrint('[홈] GET /api/v1/disasters?page=0&size=20');
     final response = await _dio.get(
       '/api/v1/disasters',
       queryParameters: {'page': 0, 'size': 20},
     );
+    if (kDebugMode) {
+      debugPrint('[홈 재난 목록 응답] ${response.statusCode} | ${response.data}');
+    }
     return DisasterListResponse.fromJson(
       Map<String, dynamic>.from(response.data as Map),
     );

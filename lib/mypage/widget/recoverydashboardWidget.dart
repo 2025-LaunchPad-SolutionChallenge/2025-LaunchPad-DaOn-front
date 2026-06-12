@@ -66,8 +66,8 @@ class _RecoveryDashboardWidgetState extends State<RecoveryDashboardWidget> {
                 final newFiltered = newStatus == '전체'
                     ? widget.disasters
                     : widget.disasters
-                        .where((d) => d.status == newStatus)
-                        .toList();
+                          .where((d) => d.status == newStatus)
+                          .toList();
                 if (newFiltered.isNotEmpty) {
                   final currentId = widget.selectedDisasterId;
                   if (currentId == null ||
@@ -79,7 +79,7 @@ class _RecoveryDashboardWidgetState extends State<RecoveryDashboardWidget> {
             ),
           ],
         ),
-        const SizedBox(height: 30),
+        const SizedBox(height: 24),
 
         if (filteredRecords.isEmpty)
           Container(
