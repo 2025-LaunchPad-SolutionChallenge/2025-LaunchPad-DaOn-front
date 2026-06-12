@@ -18,6 +18,7 @@ import 'package:project_daon/checklist/widget/itemBottomPopup.dart';
 import 'package:project_daon/checklist/widget/memoBottomPopup.dart';
 import 'package:project_daon/checklist/widget/pictureButton.dart';
 import 'package:project_daon/common/widget/roundToggleButton.dart';
+import 'package:project_daon/common/widget/skeletonBox.dart';
 import 'package:project_daon/common/widget/tapBarWidget.dart';
 import 'package:project_daon/core/service/selected_disaster_service.dart';
 import 'package:project_daon/home/api/homeApi.dart';
@@ -28,10 +29,10 @@ class ChecklistPage extends StatefulWidget {
   const ChecklistPage({super.key});
 
   @override
-  State<ChecklistPage> createState() => _ChecklistPageState();
+  State<ChecklistPage> createState() => ChecklistPageState();
 }
 
-class _ChecklistPageState extends State<ChecklistPage> {
+class ChecklistPageState extends State<ChecklistPage> {
   final _homeApi = HomeApi();
   final _checklistApi = ChecklistApi();
 
@@ -40,8 +41,10 @@ class _ChecklistPageState extends State<ChecklistPage> {
 
   List<ChecklistItemModel> _items = [];
   bool _isLoading = false;
+  bool _hasAiGeneratedItem = false;
   String? _errorMessage;
   double _completionRate = 0.0;
+  WeeklyChecklistProgress? _weeklyProgress;
   int? _userDisasterId;
 
   List<AttachmentModel> _archiveItems = [];
@@ -64,6 +67,7 @@ class _ChecklistPageState extends State<ChecklistPage> {
     _loadChecklist().whenComplete(() {
       if (mounted) _loadArchive();
     });
+    _loadWeeklyProgress();
   }
 
   @override
@@ -80,8 +84,10 @@ class _ChecklistPageState extends State<ChecklistPage> {
     if (id != null && id != _userDisasterId) {
       if (kDebugMode) debugPrint('[체크리스트] 전역 재난 변경: userDisasterId=$id');
       _userDisasterId = id;
+      setState(() => _weeklyProgress = null);
       _loadChecklist();
       _loadArchive();
+      _loadWeeklyProgress();
     }
   }
 
@@ -111,6 +117,7 @@ class _ChecklistPageState extends State<ChecklistPage> {
         setState(() {
           _items = result.items;
           _completionRate = result.completionRate;
+          _hasAiGeneratedItem = result.items.any((item) => item.isAiGenerated);
           _isLoading = false;
           _errorMessage = null;
         });
@@ -151,8 +158,28 @@ class _ChecklistPageState extends State<ChecklistPage> {
     }
   }
 
+  Future<void> _loadWeeklyProgress() async {
+    try {
+      final progress = await _homeApi.fetchWeeklyChecklistProgress(
+        _currentSelectedDate,
+      );
+      if (!mounted) return;
+      setState(() => _weeklyProgress = progress);
+    } catch (e) {
+      if (kDebugMode) debugPrint('[체크리스트] 주간 진행도 조회 실패: $e');
+    }
+  }
+
+  Future<void> refreshWeeklyProgress() async {
+    await _loadWeeklyProgress();
+  }
+
   Future<void> _refreshAll() async {
-    await Future.wait([_loadChecklist(), _loadArchive()]);
+    await Future.wait([
+      _loadChecklist(),
+      _loadArchive(),
+      _loadWeeklyProgress(),
+    ]);
   }
 
   // ── 체크리스트 CRUD ───────────────────────────────────────────
@@ -288,7 +315,8 @@ class _ChecklistPageState extends State<ChecklistPage> {
         checklistItemId: itemId,
         isCompleted: newValue,
       );
-      if (mounted) await _loadChecklist();
+      await _homeApi.runRecoveryBatch();
+      if (mounted) await Future.wait([_loadChecklist(), _loadWeeklyProgress()]);
     } catch (_) {
       if (mounted) {
         setState(() => _items[index].isChecked = !newValue);
@@ -819,9 +847,39 @@ class _ChecklistPageState extends State<ChecklistPage> {
     return Center(child: Image(image: AssetImage(asset)));
   }
 
+  Widget _buildChecklistSkeleton() {
+    const widths = [200.0, 160.0, 230.0, 140.0, 190.0];
+    return Column(
+      children: widths
+          .map(
+            (w) => Padding(
+              padding: const EdgeInsets.only(bottom: 14.0),
+              child: Row(
+                children: [
+                  SkeletonBox(
+                    width: 14,
+                    height: 14,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                  const SizedBox(width: 8),
+                  SkeletonBox(width: w, height: 14),
+                  const Spacer(),
+                  SkeletonBox(
+                    width: 28,
+                    height: 28,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ],
+              ),
+            ),
+          )
+          .toList(),
+    );
+  }
+
   Widget _buildChecklistTab() {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return _buildChecklistSkeleton();
     }
     if (_errorMessage != null) {
       return Center(
@@ -860,7 +918,7 @@ class _ChecklistPageState extends State<ChecklistPage> {
     return Scaffold(
       backgroundColor: Colors.transparent,
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-      floatingActionButton: _selectedIndex == 0
+      floatingActionButton: _selectedIndex == 0 && !_hasAiGeneratedItem
           ? Padding(
               padding: const EdgeInsets.only(bottom: 80.0),
               child: AiChecklistFloatingButton(
@@ -876,13 +934,17 @@ class _ChecklistPageState extends State<ChecklistPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ChecklistProgessBar(currentCheck: _completionRate),
+              ChecklistProgessBar(
+                currentCheck: _weeklyProgress?.completionRate ?? 0.0,
+                text2color: ColorStyles.black2,
+              ),
               ChecklistWeekWidget(
                 selectedDate: _currentSelectedDate,
                 onDateSelected: (newDate) {
                   setState(() => _currentSelectedDate = newDate);
                   _loadChecklist();
                   _loadArchive();
+                  _loadWeeklyProgress();
                 },
               ),
               const SizedBox(height: 20.0),
@@ -914,7 +976,7 @@ class _ChecklistPageState extends State<ChecklistPage> {
                       ),
                     if (_selectedIndex == 0)
                       PictureButton(
-                        text: '생성하기',
+                        text: '추가하기',
                         onPressed: _userDisasterId != null
                             ? _showAddPopup
                             : null,

@@ -152,12 +152,12 @@ class _CalWeekSelectionPopupWidgetState
                               border: Border.all(
                                 color: isCurrentMonth
                                     ? ColorStyles.main1
-                                    : Colors.grey[200]!,
+                                    : ColorStyles.grey2,
                               ),
                             ),
                             child: Text(
                               '$month월',
-                              style: TextStyle(
+                              style: FontStyles.med14.copyWith(
                                 color: isCurrentMonth
                                     ? Colors.white
                                     : ColorStyles.black2,
@@ -242,13 +242,12 @@ class _CalWeekSelectionPopupWidgetState
                         alignment: Alignment.center,
                         child: Text(
                           '${currentDate.day}',
-                          style: TextStyle(
-                            fontSize: 16,
+                          style: FontStyles.med16.copyWith(
                             color: isToday
                                 ? Colors.white
                                 : (isCurrentMonth
                                       ? ColorStyles.black1
-                                      : Colors.grey),
+                                      : ColorStyles.grey1),
                             fontWeight: isToday
                                 ? FontWeight.bold
                                 : FontWeight.normal,
@@ -346,10 +345,8 @@ class _CalWeekSelectionPopupWidgetState
                       child: Center(
                         child: Text(
                           day,
-                          style: TextStyle(
-                            color: Colors.grey[400],
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
+                          style: FontStyles.med14.copyWith(
+                            color: ColorStyles.grey1,
                           ),
                         ),
                       ),

@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:project_daon/home/api/homeApi.dart';
+import 'package:project_daon/mypage/view/recoveryGraphPage.dart';
 import 'package:project_daon/mypage/widget/disasterCardWidget.dart';
 import 'package:project_daon/mypage/widget/stateToggleWidget.dart';
 import 'package:project_daon/ui/colorStyles.dart';
@@ -11,6 +12,7 @@ class RecoveryDashboardWidget extends StatefulWidget {
   final int? selectedDisasterId;
   final ValueChanged<int> onDisasterSelected;
   final VoidCallback onAddDisaster;
+  final void Function(int id, String action)? onCloseDisaster;
 
   const RecoveryDashboardWidget({
     Key? key,
@@ -18,6 +20,7 @@ class RecoveryDashboardWidget extends StatefulWidget {
     this.selectedDisasterId,
     required this.onDisasterSelected,
     required this.onAddDisaster,
+    this.onCloseDisaster,
   }) : super(key: key);
 
   @override
@@ -63,8 +66,8 @@ class _RecoveryDashboardWidgetState extends State<RecoveryDashboardWidget> {
                 final newFiltered = newStatus == '전체'
                     ? widget.disasters
                     : widget.disasters
-                        .where((d) => d.status == newStatus)
-                        .toList();
+                          .where((d) => d.status == newStatus)
+                          .toList();
                 if (newFiltered.isNotEmpty) {
                   final currentId = widget.selectedDisasterId;
                   if (currentId == null ||
@@ -76,7 +79,7 @@ class _RecoveryDashboardWidgetState extends State<RecoveryDashboardWidget> {
             ),
           ],
         ),
-        const SizedBox(height: 30),
+        const SizedBox(height: 24),
 
         if (filteredRecords.isEmpty)
           Container(
@@ -96,6 +99,14 @@ class _RecoveryDashboardWidgetState extends State<RecoveryDashboardWidget> {
             selectedId: widget.selectedDisasterId,
             onDisasterSelected: widget.onDisasterSelected,
             onAddDisaster: widget.onAddDisaster,
+            onCloseDisaster: widget.onCloseDisaster,
+            onDashboardTap: (id) {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => RecoveryGraphPage(userDisasterId: id),
+                ),
+              );
+            },
           ),
       ],
     );

@@ -119,18 +119,14 @@ class AttachmentItemBottomPopupWidget extends StatelessWidget {
                           ),
                           padding: EdgeInsets.zero,
                         ),
-                        onPressed: onDownload,
+                        onPressed: onDelete,
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Icon(
-                              Icons.download_outlined,
-                              color: ColorStyles.black2,
-                              size: 24,
-                            ),
+                            SvgPicture.asset('assets/checklist/del.svg'),
                             const SizedBox(height: 8.0),
                             Text(
-                              '다운로드',
+                              '삭제하기',
                               style: FontStyles.med12.copyWith(
                                 color: ColorStyles.black2,
                               ),
@@ -160,14 +156,18 @@ class AttachmentItemBottomPopupWidget extends StatelessWidget {
                           ),
                           padding: EdgeInsets.zero,
                         ),
-                        onPressed: onDelete,
+                        onPressed: onDownload,
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            SvgPicture.asset('assets/checklist/del.svg'),
+                            const Icon(
+                              Icons.download_outlined,
+                              color: ColorStyles.main1,
+                              size: 26.0,
+                            ),
                             const SizedBox(height: 8.0),
                             Text(
-                              '삭제하기',
+                              '다운로드',
                               style: FontStyles.med12.copyWith(
                                 color: ColorStyles.black2,
                               ),

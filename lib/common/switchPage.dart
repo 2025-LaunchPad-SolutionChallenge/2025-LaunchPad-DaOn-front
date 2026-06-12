@@ -19,6 +19,9 @@ class SwitchPage extends StatefulWidget {
 class _SwitchPageState extends State<SwitchPage> {
   int _currentIndex = 0;
   final GlobalKey<HomePageState> _homeKey = GlobalKey<HomePageState>();
+  final GlobalKey<ChecklistPageState> _checklistKey =
+      GlobalKey<ChecklistPageState>();
+  final GlobalKey<MyPageState> _mypageKey = GlobalKey<MyPageState>();
   late final List<Widget> _pages;
 
   @override
@@ -26,15 +29,21 @@ class _SwitchPageState extends State<SwitchPage> {
     super.initState();
     _pages = [
       HomePage(key: _homeKey),
-      const ChecklistPage(),
+      ChecklistPage(key: _checklistKey),
       const CommunityPage(),
-      const MyPage(),
+      MyPage(key: _mypageKey),
     ];
   }
 
   void _onTapBottomNav(int index) {
     if (index == 0 && _currentIndex != 0) {
       _homeKey.currentState?.refreshTodayTasksFromOutside();
+    }
+    if (index == 1 && _currentIndex != 1) {
+      _checklistKey.currentState?.refreshWeeklyProgress();
+    }
+    if (index == 3 && _currentIndex != 3) {
+      _mypageKey.currentState?.refreshRecoveryAndProgress();
     }
     setState(() {
       _currentIndex = index;

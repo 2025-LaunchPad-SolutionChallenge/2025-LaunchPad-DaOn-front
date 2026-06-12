@@ -142,6 +142,22 @@ class RecoveryStageInDisaster {
   }
 }
 
+class DisasterLocation {
+  final double? latitude;
+  final double? longitude;
+  final String? address;
+
+  DisasterLocation({this.latitude, this.longitude, this.address});
+
+  factory DisasterLocation.fromJson(Map<String, dynamic> json) {
+    return DisasterLocation(
+      latitude: (json['latitude'] as num?)?.toDouble(),
+      longitude: (json['longitude'] as num?)?.toDouble(),
+      address: json['address']?.toString(),
+    );
+  }
+}
+
 class UserDisasterSummary {
   final int userDisasterId;
   final String title;
@@ -150,8 +166,10 @@ class UserDisasterSummary {
   final String status;
   final String occurredAt;
   final String? endedAt;
+  final String? address;
   final RecoveryStageInDisaster? recoveryStage;
   final double recoveryProgress;
+  final DisasterLocation? location;
 
   UserDisasterSummary({
     required this.userDisasterId,
@@ -161,8 +179,10 @@ class UserDisasterSummary {
     required this.status,
     required this.occurredAt,
     this.endedAt,
+    this.address,
     this.recoveryStage,
     required this.recoveryProgress,
+    this.location,
   });
 
   factory UserDisasterSummary.fromJson(Map<String, dynamic> json) {
@@ -174,12 +194,18 @@ class UserDisasterSummary {
       status: json['status']?.toString() ?? '',
       occurredAt: json['occurredAt']?.toString() ?? '',
       endedAt: json['endedAt']?.toString(),
+      address: json['address']?.toString(),
       recoveryStage: json['recoveryStage'] != null
           ? RecoveryStageInDisaster.fromJson(
               Map<String, dynamic>.from(json['recoveryStage'] as Map),
             )
           : null,
       recoveryProgress: (json['recoveryProgress'] as num?)?.toDouble() ?? 0.0,
+      location: json['location'] != null
+          ? DisasterLocation.fromJson(
+              Map<String, dynamic>.from(json['location'] as Map),
+            )
+          : null,
     );
   }
 
@@ -233,6 +259,82 @@ class DisasterListResponse {
   }
 }
 
+const Map<String, String> _stageDescriptions = {
+  'CHAOS': '재난 직후 혼란스러운 상태입니다. 한 걸음씩 나아가세요.',
+  'STAGNANT': '회복이 멈춘 것 같지만, 쉬어가는 것도 회복입니다.',
+  'ATTEMPTING': '회복을 위한 시도를 시작했습니다. 잘 하고 있어요!',
+  'STABLE': '일상이 안정되어 가고 있습니다. 계속 유지해 나가세요.',
+  'RECOVERY_MAINTAINED': '꾸준한 회복을 유지하고 있습니다. 대단해요!',
+};
+
+class RecoveryProgress {
+  final int userDisasterId;
+  final double recoveryScore;
+  final String stageCode;
+  final String stageName;
+  final String? description;
+
+  RecoveryProgress({
+    required this.userDisasterId,
+    required this.recoveryScore,
+    required this.stageCode,
+    required this.stageName,
+    this.description,
+  });
+
+  factory RecoveryProgress.fromJson(Map<String, dynamic> json) {
+    final code = json['stageCode']?.toString() ?? '';
+    final apiDesc = json['description']?.toString();
+    return RecoveryProgress(
+      userDisasterId: (json['userDisasterId'] as num?)?.toInt() ?? 0,
+      recoveryScore: (json['recoveryScore'] as num?)?.toDouble() ?? 0.0,
+      stageCode: code,
+      stageName: json['stageName']?.toString() ?? '',
+      description: (apiDesc != null && apiDesc.isNotEmpty)
+          ? apiDesc
+          : _stageDescriptions[code],
+    );
+  }
+
+  int get stageId {
+    const map = {
+      'CHAOS': 1,
+      'STAGNANT': 2,
+      'ATTEMPTING': 3,
+      'STABLE': 4,
+      'RECOVERY_MAINTAINED': 5,
+    };
+    return map[stageCode] ?? 1;
+  }
+}
+
+class WeeklyChecklistProgress {
+  final String weekStart;
+  final String weekEnd;
+  final double completionRate;
+
+  WeeklyChecklistProgress({
+    required this.weekStart,
+    required this.weekEnd,
+    required this.completionRate,
+  });
+
+  factory WeeklyChecklistProgress.fromJson(Map<String, dynamic> json) {
+    final raw = json['completionRate'];
+    double rate = 0.0;
+    if (raw is num) {
+      rate = raw.toDouble();
+    } else if (raw is String) {
+      rate = double.tryParse(raw.replaceAll('%', '').trim()) ?? 0.0;
+    }
+    return WeeklyChecklistProgress(
+      weekStart: json['weekStart']?.toString() ?? '',
+      weekEnd: json['weekEnd']?.toString() ?? '',
+      completionRate: rate.clamp(0.0, 100.0),
+    );
+  }
+}
+
 class HomeApi {
   final Dio _dio = AuthService().dio;
 
@@ -279,11 +381,14 @@ class HomeApi {
   }
 
   Future<DisasterListResponse> getDisasterList() async {
-    if (kDebugMode) debugPrint('[홈] 재난 목록 조회');
+    if (kDebugMode) debugPrint('[홈] GET /api/v1/disasters?page=0&size=20');
     final response = await _dio.get(
       '/api/v1/disasters',
       queryParameters: {'page': 0, 'size': 20},
     );
+    if (kDebugMode) {
+      debugPrint('[홈 재난 목록 응답] ${response.statusCode} | ${response.data}');
+    }
     return DisasterListResponse.fromJson(
       Map<String, dynamic>.from(response.data as Map),
     );
@@ -302,6 +407,58 @@ class HomeApi {
     await _dio.patch(
       '/api/v1/disasters/$userDisasterId/checklist/$checklistItemId/status',
       data: {'isCompleted': isCompleted},
+    );
+  }
+
+  Future<RecoveryProgress> fetchRecoveryProgress(int disasterId) async {
+    if (kDebugMode) {
+      debugPrint('[회복] GET /api/v1/disasters/$disasterId/recovery/progress');
+    }
+    final response = await _dio.get(
+      '/api/v1/disasters/$disasterId/recovery/progress',
+    );
+    if (kDebugMode) {
+      debugPrint('[회복 응답] ${response.statusCode} | ${response.data}');
+    }
+    return RecoveryProgress.fromJson(
+      Map<String, dynamic>.from(response.data as Map),
+    );
+  }
+
+  /// 개발/데모용: 회복 라벨링 배치를 즉시 실행합니다.
+  /// kDebugMode에서만 동작하며, 실패해도 앱 흐름에 영향을 주지 않습니다.
+  Future<void> runRecoveryBatch() async {
+    if (!kDebugMode) return;
+    try {
+      debugPrint('[배치] POST /api/v1/dev/batch/recovery');
+      final response = await _dio.post('/api/v1/dev/batch/recovery');
+      debugPrint('[배치] 응답: ${response.statusCode} | ${response.data}');
+    } catch (e) {
+      debugPrint('[배치] 실패 (무시): $e');
+    }
+  }
+
+  Future<WeeklyChecklistProgress> fetchWeeklyChecklistProgress(
+    DateTime date,
+  ) async {
+    final y = date.year.toString();
+    final mo = date.month.toString().padLeft(2, '0');
+    final d = date.day.toString().padLeft(2, '0');
+    final dateStr = '$y-$mo-$d';
+    if (kDebugMode) {
+      debugPrint(
+        '[체크리스트 주간] GET /api/v1/checklists/weekly-progress?date=$dateStr',
+      );
+    }
+    final response = await _dio.get(
+      '/api/v1/checklists/weekly-progress',
+      queryParameters: {'date': dateStr},
+    );
+    if (kDebugMode) {
+      debugPrint('[체크리스트 주간 응답] ${response.statusCode} | ${response.data}');
+    }
+    return WeeklyChecklistProgress.fromJson(
+      Map<String, dynamic>.from(response.data as Map),
     );
   }
 }

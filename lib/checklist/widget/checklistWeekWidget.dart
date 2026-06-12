@@ -118,7 +118,7 @@ class _ChecklistWeekWidgetState extends State<ChecklistWeekWidget> {
                   widget.onDateSelected(newSelectedWeek);
                 }
               },
-              style: TextButton.styleFrom(foregroundColor: Colors.black87),
+              style: TextButton.styleFrom(foregroundColor: ColorStyles.black1),
               child: Text(
                 _getWeekOfMonthText(_currentWeekStart),
                 style: FontStyles.semi20,

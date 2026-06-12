@@ -12,7 +12,10 @@ import 'package:project_daon/mypage/view/profileEditPage.dart';
 import 'package:project_daon/mypage/widget/myPageAppBarWidget.dart';
 import 'package:project_daon/mypage/widget/myProfileWidget.dart';
 import 'package:project_daon/mypage/widget/recoverydashboardWidget.dart';
+import 'package:project_daon/onboarding/model/onboardingLocation.dart';
 import 'package:project_daon/onboarding/view/onboardingController.dart';
+import 'package:project_daon/onboarding/view/onboardingLocationConfirmPage.dart';
+import 'package:project_daon/common/widget/skeletonBox.dart';
 import 'package:project_daon/ui/colorStyles.dart';
 import 'package:project_daon/ui/fontStyles.dart';
 
@@ -20,14 +23,15 @@ class MyPage extends StatefulWidget {
   const MyPage({super.key});
 
   @override
-  State<MyPage> createState() => _MyPageState();
+  State<MyPage> createState() => MyPageState();
 }
 
-class _MyPageState extends State<MyPage> {
+class MyPageState extends State<MyPage> {
   UserProfile? _profile;
   ResidenceStatus? _residenceStatus;
   HomeSummary? _homeSummary;
   RecoveryStageResponse? _recoveryStage;
+  RecoveryProgress? _recoveryProgress;
   List<UserDisasterSummary> _disasters = [];
   bool _isProfileLoading = true;
 
@@ -77,12 +81,22 @@ class _MyPageState extends State<MyPage> {
 
   Future<void> _reloadRecoveryStage(int id) async {
     try {
-      final stage = await _homeApi.getRecoveryStage(id);
+      final results = await Future.wait([
+        _homeApi.getRecoveryStage(id),
+        _homeApi.fetchRecoveryProgress(id),
+      ]);
       if (!mounted) return;
-      setState(() => _recoveryStage = stage);
+      setState(() {
+        _recoveryStage = results[0] as RecoveryStageResponse;
+        _recoveryProgress = results[1] as RecoveryProgress;
+      });
     } catch (e) {
       if (kDebugMode) debugPrint('[마이페이지] 회복 단계 재조회 실패: $e');
     }
+  }
+
+  Future<void> refreshRecoveryAndProgress() async {
+    await _loadMyPageData();
   }
 
   Future<void> _loadMyPageData() async {
@@ -123,7 +137,16 @@ class _MyPageState extends State<MyPage> {
           .getDisasterList()
           .then<void>((r) {
             disasters = r.content;
-            if (kDebugMode) debugPrint('[마이페이지] 재난 목록: ${disasters.length}개');
+            if (kDebugMode) {
+              debugPrint(
+                '[마이페이지] 재난 목록: ${disasters.length}개 (총 ${r.totalElements}건)',
+              );
+              for (final d in disasters) {
+                debugPrint(
+                  '  ㄴ id=${d.userDisasterId} | ${d.disasterTypeName} | ${d.status} | 회복률=${d.recoveryProgress.toStringAsFixed(1)}% | ${d.occurredAt} | 장소=${d.address ?? '없음'}',
+                );
+              }
+            }
           })
           .catchError((Object e) {
             if (kDebugMode) debugPrint('[마이페이지] 재난 목록 조회 실패: $e');
@@ -146,11 +169,22 @@ class _MyPageState extends State<MyPage> {
     }
 
     RecoveryStageResponse? recoveryStage;
+    RecoveryProgress? recoveryProgress;
     if (activeId != null) {
       try {
-        recoveryStage = await _homeApi.getRecoveryStage(activeId);
+        final results = await Future.wait([
+          _homeApi.getRecoveryStage(activeId),
+          _homeApi.fetchRecoveryProgress(activeId),
+        ]);
+        recoveryStage = results[0] as RecoveryStageResponse;
+        recoveryProgress = results[1] as RecoveryProgress;
       } catch (e) {
-        if (kDebugMode) debugPrint('[마이페이지] 회복 단계 조회 실패: $e');
+        if (kDebugMode) debugPrint('[마이페이지] 회복 단계/진행도 조회 실패: $e');
+        if (recoveryStage == null && activeId != null) {
+          try {
+            recoveryStage = await _homeApi.getRecoveryStage(activeId);
+          } catch (_) {}
+        }
       }
     }
 
@@ -160,6 +194,7 @@ class _MyPageState extends State<MyPage> {
       _residenceStatus = residenceStatus;
       _homeSummary = homeSummary;
       _recoveryStage = recoveryStage;
+      _recoveryProgress = recoveryProgress;
       _disasters = disasters;
       _isProfileLoading = false;
     });
@@ -190,12 +225,35 @@ class _MyPageState extends State<MyPage> {
       return;
     }
 
-    if (kDebugMode) debugPrint('[마이페이지] 재난 추가 온보딩 시작');
+    if (kDebugMode) debugPrint('[마이페이지] 재난 추가 — 위치 수집 시작');
 
+    // Step 1: 재난 발생 위치 수집
+    final locationResult = await Navigator.push<LocationConfirmResult>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const OnboardingLocationConfirmPage(
+          initialQuery: '',
+          confirmLabel: '다음',
+        ),
+      ),
+    );
+
+    if (!mounted) return;
+    if (locationResult == null) return; // 사용자가 취소
+
+    if (kDebugMode) {
+      debugPrint('[마이페이지] 위치 수집 완료: ${locationResult.location.displayAddress}');
+      debugPrint('[마이페이지] 재난 추가 온보딩 시작');
+    }
+
+    // Step 2: 재난 정보 입력
     final newId = await Navigator.push<int?>(
       context,
       MaterialPageRoute(
-        builder: (_) => const OnboardingController(addDisasterMode: true),
+        builder: (_) => OnboardingController(
+          addDisasterMode: true,
+          locationResult: locationResult,
+        ),
       ),
     );
 
@@ -204,6 +262,20 @@ class _MyPageState extends State<MyPage> {
     if (newId != null) {
       _showSnackBar('새 재난이 등록되었습니다.');
       await _loadMyPageData();
+    }
+  }
+
+  Future<void> _handleCloseDisaster(int id, String action) async {
+    final now = DateTime.now().toIso8601String().substring(0, 19);
+    try {
+      await _mypageApi.closeDisaster(
+        userDisasterId: id,
+        action: action,
+        endedAt: now,
+      );
+      await _loadMyPageData();
+    } catch (e) {
+      if (mounted) _showSnackBar(_cleanErrorMessage(e));
     }
   }
 
@@ -310,29 +382,78 @@ class _MyPageState extends State<MyPage> {
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) {
-        return AlertDialog(
-          title: Text(title),
-          content: Text(content),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(dialogContext).pop(false);
-              },
-              child: const Text('취소'),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(dialogContext).pop(true);
-              },
-              child: Text(
-                confirmText,
-                style: TextStyle(
-                  color: isDanger ? Colors.red : ColorStyles.main2,
-                  fontWeight: FontWeight.w600,
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+          backgroundColor: ColorStyles.white,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: FontStyles.semi20.copyWith(color: ColorStyles.black1),
                 ),
-              ),
+                const SizedBox(height: 10),
+                Text(
+                  content,
+                  style: FontStyles.med16.copyWith(
+                    color: ColorStyles.grey1,
+                    height: 1.6,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => Navigator.of(dialogContext).pop(false),
+                        child: Container(
+                          height: 48,
+                          decoration: BoxDecoration(
+                            color: ColorStyles.secon1,
+                            borderRadius: BorderRadius.circular(7),
+                          ),
+                          alignment: Alignment.center,
+                          child: Text(
+                            '취소',
+                            style: FontStyles.semi16.copyWith(
+                              color: ColorStyles.black2,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => Navigator.of(dialogContext).pop(true),
+                        child: Container(
+                          height: 48,
+                          decoration: BoxDecoration(
+                            color: isDanger
+                                ? const Color(0xFFFF4B4B)
+                                : ColorStyles.main2,
+                            borderRadius: BorderRadius.circular(7),
+                          ),
+                          alignment: Alignment.center,
+                          child: Text(
+                            confirmText,
+                            style: FontStyles.semi16.copyWith(
+                              color: ColorStyles.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
-          ],
+          ),
         );
       },
     );
@@ -454,17 +575,37 @@ class _MyPageState extends State<MyPage> {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [ColorStyles.main2, ColorStyles.main3],
+
+            colors: [
+              ColorStyles.main2, // 상단의 민트/그린
+              ColorStyles.main3, // 하단의 연노랑
+            ],
+
+            stops: [0.01, 0.8],
           ),
         ),
         child: SafeArea(
           child: Column(
             children: [
               _isProfileLoading
-                  ? const SizedBox(
-                      height: 210,
+                  ? SizedBox(
+                      height: 225,
                       child: Center(
-                        child: CircularProgressIndicator(color: Colors.white),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            SkeletonBox(
+                              width: 100,
+                              height: 100,
+                              borderRadius: BorderRadius.circular(50),
+                              isLight: true,
+                            ),
+                            const SizedBox(height: 10),
+                            SkeletonBox(width: 120, height: 20, isLight: true),
+                            const SizedBox(height: 8),
+                            SkeletonBox(width: 170, height: 15, isLight: true),
+                          ],
+                        ),
                       ),
                     )
                   : MyProfileWidget(
@@ -480,7 +621,12 @@ class _MyPageState extends State<MyPage> {
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
                 width: double.infinity,
                 child: ChecklistProgessBar(
-                  currentCheck: _homeSummary?.todayCompletionRate ?? 0.0,
+                  // 모든 진행률 값은 0~100 스케일. ChecklistProgessBar도 0~100 기대.
+                  currentCheck:
+                      (_recoveryProgress?.recoveryScore ??
+                              _homeSummary?.recoveryProgress ??
+                              0.0)
+                          .clamp(0.0, 100.0),
                   text: '회복률',
                   textcolor: ColorStyles.white,
                   progresscolor: ColorStyles.main3,
@@ -514,6 +660,7 @@ class _MyPageState extends State<MyPage> {
                               SelectedDisasterService.instance.selectedId.value,
                           onDisasterSelected: _handleDisasterSelected,
                           onAddDisaster: _handleAddDisaster,
+                          onCloseDisaster: _handleCloseDisaster,
                         ),
                         const SizedBox(height: 16),
 
@@ -538,44 +685,6 @@ class _MyPageState extends State<MyPage> {
                           isLoading: _isWithdrawLoading,
                           isDanger: true,
                         ),
-
-                        if (kDebugMode) ...[
-                          const SizedBox(height: 40),
-                          SizedBox(
-                            width: double.infinity,
-                            height: 54,
-                            child: ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: ColorStyles.white,
-                                foregroundColor: ColorStyles.main2,
-                                disabledBackgroundColor: ColorStyles.white
-                                    .withValues(alpha: 0.7),
-                                shadowColor: Colors.transparent,
-                                elevation: 0,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(7),
-                                  side: const BorderSide(
-                                    color: ColorStyles.main2,
-                                  ),
-                                ),
-                              ),
-                              onPressed: () {},
-                              child: _isLoadingTokens
-                                  ? const SizedBox(
-                                      width: 24,
-                                      height: 24,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        color: ColorStyles.main2,
-                                      ),
-                                    )
-                                  : Text(
-                                      'Withdraw 테스트 토큰 출력',
-                                      style: FontStyles.semi16,
-                                    ),
-                            ),
-                          ),
-                        ],
                       ],
                     ),
                   ),

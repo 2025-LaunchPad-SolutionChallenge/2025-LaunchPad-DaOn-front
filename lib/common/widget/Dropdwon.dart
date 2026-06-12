@@ -52,7 +52,7 @@ class _DropdownState extends State<Dropdown> {
         _resolvedItems = widget.items ?? _defaultItems;
         if (_resolvedItems.isEmpty) {
           _selectedValue = null;
-        } else if (_selectedValue == null || !_resolvedItems.contains(_selectedValue)) {
+        } else {
           final idx = (widget.initialIndex ?? 0).clamp(0, _resolvedItems.length - 1);
           _selectedValue = _resolvedItems[idx];
         }

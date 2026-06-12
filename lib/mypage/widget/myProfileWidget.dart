@@ -32,20 +32,29 @@ class MyProfileWidget extends StatelessWidget {
     if (disasterTypeName != null && disasterTypeName!.trim().isNotEmpty) {
       parts.add('${disasterTypeName!.trim()} 피해');
     }
-    return parts.join('  /  ');
+    return parts.join('   /   ');
   }
 
   Widget _buildProfileImage() {
     final url = profileImageUrl;
     if (url != null && url.isNotEmpty) {
-      return ClipOval(
-        child: Image.network(
-          url,
-          width: 80,
-          height: 80,
-          fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) =>
-              SvgPicture.asset('assets/mypage/myprofile.svg'),
+      return Container(
+        width: 100,
+        height: 100,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: ColorStyles.white.withAlpha(100),
+          border: Border.all(color: ColorStyles.white.withAlpha(100), width: 4),
+        ),
+        child: ClipOval(
+          child: Image.network(
+            url,
+            width: 86,
+            height: 86,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) =>
+                SvgPicture.asset('assets/mypage/myprofile.svg'),
+          ),
         ),
       );
     }
@@ -65,7 +74,7 @@ class MyProfileWidget extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           _buildProfileImage(),
-          const SizedBox(height: 16.0),
+          const SizedBox(height: 10.0),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -84,17 +93,16 @@ class MyProfileWidget extends StatelessWidget {
                     color: Colors.white.withValues(alpha: 0.25),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Row(
+                  child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.verified, color: Colors.white, size: 13),
+                      Icon(Icons.verified, color: ColorStyles.white, size: 13),
                       SizedBox(width: 3),
                       Text(
                         '거주 인증',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 11,
+                        style: FontStyles.med11.copyWith(
                           fontWeight: FontWeight.w600,
+                          color: ColorStyles.white,
                         ),
                       ),
                     ],
@@ -107,8 +115,8 @@ class MyProfileWidget extends StatelessWidget {
             const SizedBox(height: 4.0),
             Text(
               infoLine,
-              style: FontStyles.med14.copyWith(
-                color: Colors.white.withValues(alpha: 0.85),
+              style: FontStyles.med15.copyWith(
+                color: ColorStyles.white.withValues(alpha: 0.85),
               ),
             ),
           ],

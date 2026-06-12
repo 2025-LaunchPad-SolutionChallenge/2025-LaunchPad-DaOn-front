@@ -117,13 +117,26 @@ class OnboardingApi {
     Map<int, dynamic> userAnswers,
     String selectedDisaster, {
     int detailOffset = 5,
+    double? latitude,
+    double? longitude,
+    String? address,
   }) async {
-    final body = buildDisasterOnboardingPayload(userAnswers, selectedDisaster, detailOffset: detailOffset);
+    final body = buildDisasterOnboardingPayload(
+      userAnswers,
+      selectedDisaster,
+      detailOffset: detailOffset,
+      latitude: latitude,
+      longitude: longitude,
+      address: address,
+    );
 
     if (kDebugMode) {
       debugPrint('[온보딩 Step2] POST /api/v1/disasters/onboarding');
       debugPrint('[온보딩 Step2 요청 본문]');
       debugPrint('  disasterType    : ${body['disasterType']}');
+      debugPrint('  latitude        : ${body['latitude']}');
+      debugPrint('  longitude       : ${body['longitude']}');
+      debugPrint('  address         : ${body['address']}');
       debugPrint('  safetyStatus    : ${body['safetyStatus']}');
       debugPrint('  residenceStatus : ${body['residenceStatus']}');
       debugPrint('  injuryLevel     : ${body['injuryLevel']}');
@@ -183,6 +196,9 @@ class OnboardingApi {
     Map<int, dynamic> userAnswers,
     String selectedDisaster, {
     int detailOffset = 5,
+    double? latitude,
+    double? longitude,
+    String? address,
   }) {
     final disasterType = _mapDisasterType(selectedDisaster);
     final safetyStatus =
@@ -228,6 +244,9 @@ class OnboardingApi {
     // Swagger와 동일하게 null 값도 명시적으로 포함
     return {
       'disasterType': disasterType,
+      'latitude': latitude,
+      'longitude': longitude,
+      'address': address,
       'safetyStatus': safetyStatus,
       'residenceStatus': residenceStatus,
       'injuryLevel': injuryLevel,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:project_daon/core/service/selected_disaster_service.dart';
+import 'package:project_daon/mypage/api/mypageApi.dart';
 import 'package:project_daon/onboarding/api/onboardingApi.dart';
 import '../model/onboardingData.dart';
 import '../model/onboardingLocation.dart';
@@ -11,8 +12,14 @@ class OnboardingController extends StatefulWidget {
   // 재난 유형 선택부터 시작하고, 완료 시 새 userDisasterId를 pop합니다.
   final bool addDisasterMode;
 
-  const OnboardingController({Key? key, this.addDisasterMode = false})
-      : super(key: key);
+  // addDisasterMode에서 미리 수집한 위치 정보 (null이면 위치 없이 전송)
+  final LocationConfirmResult? locationResult;
+
+  const OnboardingController({
+    Key? key,
+    this.addDisasterMode = false,
+    this.locationResult,
+  }) : super(key: key);
 
   @override
   State<OnboardingController> createState() => _OnboardingControllerState();
@@ -112,6 +119,14 @@ class _OnboardingControllerState extends State<OnboardingController> {
         }
 
         debugPrint('[거주지 인증] 인증 성공 | distanceKm=${verifyResult.distanceKm}');
+
+        try {
+          await MypageApi().updateUserProfile(
+            addressName: locationAnswer.currentAddress,
+          );
+        } catch (e) {
+          debugPrint('[온보딩] addressName 저장 실패 (무시): $e');
+        }
       } catch (e) {
         debugPrint('[온보딩] 거주지 인증 실패: $e');
         if (!mounted) return;
@@ -156,11 +171,27 @@ class _OnboardingControllerState extends State<OnboardingController> {
     } else {
       final onboardingApi = OnboardingApi();
 
+      // 위치 정보 결정:
+      // - 일반 온보딩: Step 1에서 answers[3]에 저장된 LocationConfirmResult 사용
+      // - 재난 추가 모드: 컨트롤러 생성 시 주입된 locationResult 사용
+      OnboardingLocation? savedLocation;
+      if (!widget.addDisasterMode) {
+        final locationAnswer = _userAnswers[3];
+        if (locationAnswer is LocationConfirmResult) {
+          savedLocation = locationAnswer.location;
+        }
+      } else {
+        savedLocation = widget.locationResult?.location;
+      }
+
       try {
         final newUserDisasterId = await onboardingApi.submitDisasterOnboarding(
           _userAnswers,
           _selectedDisaster,
           detailOffset: _detailOffset,
+          latitude: savedLocation?.latitude,
+          longitude: savedLocation?.longitude,
+          address: savedLocation?.displayAddress,
         );
 
         if (!mounted) return;
