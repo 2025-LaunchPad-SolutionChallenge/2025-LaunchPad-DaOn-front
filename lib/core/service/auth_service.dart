@@ -29,10 +29,8 @@ class AuthService {
     dio = _buildAppDio();
   }
 
-  static const String baseUrl = String.fromEnvironment(
-    'API_BASE_URL',
-    defaultValue: 'http://10.0.2.2:8000',
-  );
+  static const String baseUrl =
+      'https://2025-launchpad-daon-back-ai-production.up.railway.app';
 
   /// MaterialApp에 연결하면 refresh 실패 시 어디서든 /login으로 이동할 수 있습니다.
   static final GlobalKey<NavigatorState> navigatorKey =

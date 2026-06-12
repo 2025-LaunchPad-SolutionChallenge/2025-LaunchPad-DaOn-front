@@ -172,16 +172,27 @@ class _OnboardingControllerState extends State<OnboardingController> {
       final onboardingApi = OnboardingApi();
 
       // 위치 정보 결정:
-      // - 일반 온보딩: Step 1에서 answers[3]에 저장된 LocationConfirmResult 사용
+      // - 일반 온보딩: Step 1에서 answers[3]에 저장된 LocationConfirmResult 사용 (거주지 인증된 현재 주소)
       // - 재난 추가 모드: 컨트롤러 생성 시 주입된 locationResult 사용
-      OnboardingLocation? savedLocation;
+      double? resLatitude;
+      double? resLongitude;
+      String? resAddress;
       if (!widget.addDisasterMode) {
         final locationAnswer = _userAnswers[3];
         if (locationAnswer is LocationConfirmResult) {
-          savedLocation = locationAnswer.location;
+          resLatitude = locationAnswer.currentLatitude;
+          resLongitude = locationAnswer.currentLongitude;
+          resAddress = locationAnswer.currentAddress.isNotEmpty
+              ? locationAnswer.currentAddress
+              : locationAnswer.location.displayAddress;
         }
       } else {
-        savedLocation = widget.locationResult?.location;
+        final loc = widget.locationResult;
+        resLatitude = loc?.currentLatitude;
+        resLongitude = loc?.currentLongitude;
+        resAddress = (loc?.currentAddress.isNotEmpty == true)
+            ? loc!.currentAddress
+            : loc?.location.displayAddress;
       }
 
       try {
@@ -189,9 +200,9 @@ class _OnboardingControllerState extends State<OnboardingController> {
           _userAnswers,
           _selectedDisaster,
           detailOffset: _detailOffset,
-          latitude: savedLocation?.latitude,
-          longitude: savedLocation?.longitude,
-          address: savedLocation?.displayAddress,
+          latitude: resLatitude,
+          longitude: resLongitude,
+          address: resAddress,
         );
 
         if (!mounted) return;
