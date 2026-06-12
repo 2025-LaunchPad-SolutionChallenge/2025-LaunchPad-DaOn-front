@@ -355,7 +355,11 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
                   shape: BoxShape.circle,
                   border: Border.all(color: ColorStyles.white, width: 2),
                 ),
-                child: const Icon(Icons.edit, color: ColorStyles.white, size: 14),
+                child: const Icon(
+                  Icons.edit,
+                  color: ColorStyles.white,
+                  size: 14,
+                ),
               ),
           ],
         ),
@@ -398,44 +402,38 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
               ),
             ),
             const SizedBox(width: 8),
-            _isReverifying
-                ? const SizedBox(
-                    width: 80,
-                    height: 48,
-                    child: Center(
-                      child: SizedBox(
+            SizedBox(
+              height: 48,
+              child: OutlinedButton(
+                onPressed: _isReverifying ? null : _handleReverify,
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: _isReverified
+                      ? ColorStyles.white
+                      : ColorStyles.main1,
+                  backgroundColor: _isReverified
+                      ? ColorStyles.main1
+                      : Colors.transparent,
+                  side: const BorderSide(color: ColorStyles.main1),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(7),
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                ),
+                child: _isReverifying
+                    ? const SizedBox(
                         width: 20,
                         height: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
                           color: ColorStyles.main1,
                         ),
-                      ),
-                    ),
-                  )
-                : SizedBox(
-                    height: 48,
-                    child: OutlinedButton(
-                      onPressed: _handleReverify,
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: _isReverified
-                            ? ColorStyles.white
-                            : ColorStyles.main1,
-                        backgroundColor: _isReverified
-                            ? ColorStyles.main1
-                            : Colors.transparent,
-                        side: const BorderSide(color: ColorStyles.main1),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(7),
-                        ),
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                      ),
-                      child: Text(
-                        _isReverified ? '인증완료' : '재인증',
+                      )
+                    : Text(
+                        _isReverified ? '완료' : '재인증',
                         style: FontStyles.med16,
                       ),
-                    ),
-                  ),
+              ),
+            ),
           ],
         ),
         if (_isReverified) ...[

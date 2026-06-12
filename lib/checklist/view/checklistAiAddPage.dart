@@ -310,22 +310,23 @@ class _ChecklistAiAddPageState extends State<ChecklistAiAddPage> {
                   ),
                 ),
               ),
-              GestureDetector(
-                onTap: _canSubmit ? _onSubmit : null,
-                child: Opacity(
-                  opacity: _canSubmit ? 1.0 : 0.45,
-                  child: _isSubmitting
-                      ? const SizedBox(
-                          height: 48,
-                          child: Center(
-                            child: CircularProgressIndicator(
-                              color: ColorStyles.main2,
-                              strokeWidth: 2,
-                            ),
-                          ),
-                        )
-                      : GradientButton(text: '생성하기'),
-                ),
+              Stack(
+                alignment: Alignment.center,
+                children: [
+                  GradientButton(
+                    text: _isSubmitting ? '' : '생성하기',
+                    onPressed: _canSubmit ? _onSubmit : null,
+                  ),
+                  if (_isSubmitting)
+                    const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: ColorStyles.white,
+                      ),
+                    ),
+                ],
               ),
             ],
           ),
